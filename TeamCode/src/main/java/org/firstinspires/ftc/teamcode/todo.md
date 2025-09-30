@@ -1,8 +1,8 @@
 
 ## Problems To-Do
 
-- [ ] Read april tags -- hendrix is working on it
-- [ ] use gobuilda pinpoint?
+- [ ] Read april tags - Hendrix
+- [ ] use g0Bilda pinpoint?
     - [ ] Obelisk
     - [ ] Goal tag
 - [ ] (use goBuilda pinpoint?)

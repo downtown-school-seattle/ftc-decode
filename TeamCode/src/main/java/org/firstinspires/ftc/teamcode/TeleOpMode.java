@@ -25,6 +25,7 @@ public class TeleOpMode extends LinearOpMode {
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
+<<<<<<< HEAD
     double xLocEstimate; // Overall xloc best guess
     // 0 = back 1 = front
 
@@ -32,6 +33,8 @@ public class TeleOpMode extends LinearOpMode {
     // 0 = left 1 = right
 
 
+=======
+>>>>>>> 2603d6d74bd502d346df54e6045025defc13a9c7
     @Override
     public void runOpMode() {
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
@@ -39,6 +42,15 @@ public class TeleOpMode extends LinearOpMode {
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
 
+<<<<<<< HEAD
+=======
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+
+>>>>>>> 2603d6d74bd502d346df54e6045025defc13a9c7
         imu = hardwareMap.get(IMU.class, "imu");
         initializeIMU();
 
@@ -78,7 +90,10 @@ public class TeleOpMode extends LinearOpMode {
                         -gamepad1.left_stick_y * speedCap,
                         gamepad1.left_stick_x * speedCap,
                         gamepad1.right_stick_x * speedCap
-                    );
+                );
+                    if (gamepad1.a){
+                        imu.resetYaw();
+                    }
                     break;
                 case ROBOT_RELATIVE:
                     drive(
@@ -90,10 +105,6 @@ public class TeleOpMode extends LinearOpMode {
                 case 
             }
         }
-    }
-
-    private void driveToLocation(double xloc, double yloc) {
-        
     }
 
     // This routine drives the robot field relative

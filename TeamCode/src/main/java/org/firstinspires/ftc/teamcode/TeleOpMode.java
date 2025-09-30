@@ -53,6 +53,10 @@ public class TeleOpMode extends LinearOpMode {
 
         while (opModeIsActive()) {
             telemetry.addData("Status", "Running");
+            telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
+            telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
+            telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
+            telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
             telemetry.update();
 
             double speedCap = 1;
@@ -76,7 +80,6 @@ public class TeleOpMode extends LinearOpMode {
                     );
                     break;
             }
-
         }
     }
 

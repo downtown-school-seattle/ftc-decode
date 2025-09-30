@@ -1,7 +1,7 @@
 
 ## Problems To-Do
 
-- [ ] Read april tags
+- [/] Read april tags
 - [ ] use gobuilda pinpoint?
     - [ ] Obelisk
     - [ ] Goal tag

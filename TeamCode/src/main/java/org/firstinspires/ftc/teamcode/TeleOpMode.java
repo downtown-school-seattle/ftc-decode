@@ -70,7 +70,10 @@ public class TeleOpMode extends LinearOpMode {
                         -gamepad1.left_stick_y * speedCap,
                         gamepad1.left_stick_x * speedCap,
                         gamepad1.right_stick_x * speedCap
-                    );
+                );
+                    if (gamepad1.a){
+                        imu.resetYaw();
+                    }
                     break;
                 case ROBOT_RELATIVE:
                     drive(

@@ -9,3 +9,4 @@
 
 **Left stick**: drive and strafe
 **Right stick X**: Rotate 
+**A**: rests the Yaw to be zero from the way the robot is currently facing

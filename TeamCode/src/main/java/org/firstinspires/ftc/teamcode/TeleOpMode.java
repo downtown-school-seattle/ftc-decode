@@ -14,6 +14,7 @@ public class TeleOpMode extends LinearOpMode {
     enum DriveMode {
         FIELD_RELATIVE,
         ROBOT_RELATIVE,
+        
     }
 
     DcMotor frontLeftDrive;
@@ -25,8 +26,10 @@ public class TeleOpMode extends LinearOpMode {
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
     double xLocEstimate; // Overall xloc best guess
-    double yLocEstimate; // Overall yloc best guess
+    // 0 = back 1 = front
 
+    double yLocEstimate; // Overall yloc best guess
+    // 0 = left 1 = right
 
 
     @Override
@@ -35,12 +38,6 @@ public class TeleOpMode extends LinearOpMode {
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
-
-        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
 
         imu = hardwareMap.get(IMU.class, "imu");
         initializeIMU();
@@ -90,6 +87,7 @@ public class TeleOpMode extends LinearOpMode {
                             gamepad1.right_stick_x * speedCap
                     );
                     break;
+                case 
             }
         }
     }

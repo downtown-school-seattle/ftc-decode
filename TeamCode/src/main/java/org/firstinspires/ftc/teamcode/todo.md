@@ -8,6 +8,7 @@
 - [ ] Operate intake and shooting
 - [ ] Tele Op
   - [x] Basic driving
+  - [ ] Determine how fast the robot is
   - [ ] Show encoder data
   - [ ] Reset field positioning
   - [ ] (Auto aim?)

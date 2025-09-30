@@ -51,6 +51,11 @@ public class TeleOpMode extends LinearOpMode {
             }
         }
 
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         while (opModeIsActive()) {
             telemetry.addData("Status", "Running");
             telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());

@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp
-public class TestOpMode extends LinearOpMode {
+public class TeleOpMode extends LinearOpMode {
     enum DriveMode {
         FIELD_RELATIVE,
         ROBOT_RELATIVE,
@@ -56,11 +56,9 @@ public class TestOpMode extends LinearOpMode {
             telemetry.update();
 
             double speedCap = 1;
-//            if (gamepad1.a) {
-//                speedCap = 1;
-//            } else {
-//                speedCap = 0.5;
-//            }
+            if (gamepad1.b) {
+                speedCap = 0.5;
+            }
 
             switch (driveMode) {
                 case FIELD_RELATIVE:

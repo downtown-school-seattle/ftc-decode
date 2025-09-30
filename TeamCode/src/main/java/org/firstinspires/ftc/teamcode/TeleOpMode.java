@@ -24,6 +24,11 @@ public class TeleOpMode extends LinearOpMode {
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
+    double xLocEstimate; // Overall xloc best guess
+    double yLocEstimate; // Overall yloc best guess
+
+
+
     @Override
     public void runOpMode() {
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
@@ -81,6 +86,10 @@ public class TeleOpMode extends LinearOpMode {
                     break;
             }
         }
+    }
+
+    private void driveToLocation(double xloc, double yloc) {
+        
     }
 
     // This routine drives the robot field relative

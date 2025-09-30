@@ -7,7 +7,13 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.util.List;
 
 @TeleOp
 public class TeleOpMode extends LinearOpMode {
@@ -24,8 +30,16 @@ public class TeleOpMode extends LinearOpMode {
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
+
+    private AprilTagProcessor aprilTagProcessor;
+
+    private VisionPortal visionPortal;
+
+
     @Override
     public void runOpMode() {
+        initAprilTagProcessor();
+
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
@@ -63,6 +77,9 @@ public class TeleOpMode extends LinearOpMode {
             telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
             telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
             telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
+
+            telemetryAprilTag();
+
             telemetry.update();
 
             double speedCap = 1;
@@ -146,5 +163,42 @@ public class TeleOpMode extends LinearOpMode {
         RevHubOrientationOnRobot orientationOnRobot = new
                 RevHubOrientationOnRobot(logoDirection, usbDirection);
         imu.initialize(new IMU.Parameters(orientationOnRobot));
+    }
+
+    private void initAprilTagProcessor() {
+        aprilTagProcessor = new AprilTagProcessor.Builder().build();
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        builder.setCamera(hardwareMap.get(WebcamName.class, "cam 1"));
+        builder.addProcessor(aprilTagProcessor);
+        builder.setAutoStopLiveView(false);
+
+        visionPortal = builder.build();
+    }
+
+    // default decode code for the homosexual tag telemetry -Hendrix
+    private void telemetryAprilTag() {
+
+        List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
+
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
+                telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+                telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+            }
+        }   // end for() loop
+
+        // Add "key" information to telemetry
+        telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
+        telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
+        telemetry.addLine("RBE = Range, Bearing & Elevation");
+
     }
 }

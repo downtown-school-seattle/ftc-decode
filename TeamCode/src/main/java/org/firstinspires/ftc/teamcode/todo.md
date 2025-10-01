@@ -2,7 +2,7 @@
 ## Problems To-Do
 
 - [ ] Read april tags - Hendrix
-- [ ] use g0Bilda pinpoint?
+- [ ] use goBilda pinpoint?
     - [ ] Obelisk
     - [ ] Goal tag
 - [ ] (use goBuilda pinpoint?)

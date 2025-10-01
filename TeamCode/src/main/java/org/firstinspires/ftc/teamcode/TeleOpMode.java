@@ -22,8 +22,7 @@ public class TeleOpMode extends LinearOpMode {
         ROBOT_RELATIVE,
     }
 
-    // public static double countsPerInch = ('ticks per revolution'*'drive gear reduction')/((104/25.4)*Math.PI)
-    // ^ add this once we know tpr and gear reduction - Hendrix
+    public static double countsPerInch = (537.7*19.2)/((104/25.4)*Math.PI);
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;

@@ -32,12 +32,6 @@ public class TeleOpMode extends LinearOpMode {
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
-    double xLocEstimate; // Overall xloc best guess
-    // 0 = back 1 = front
-
-    double yLocEstimate; // Overall yloc best guess
-    // 0 = left 1 = right
-
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
 

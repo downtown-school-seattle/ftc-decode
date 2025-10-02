@@ -2,7 +2,6 @@
 ## Problems To-Do
 
 - [ ] Read april tags - Hendrix
-- [ ] use goBilda pinpoint?
     - [ ] Obelisk
     - [ ] Goal tag
 - [ ] (use goBuilda pinpoint?)
@@ -15,6 +14,6 @@
   - [x] Reset field positioning
   - [ ] (Auto aim?)
 - [ ] Autonomous
-    - [ ] Function for move forward by a specific number of inches
+    - [ ] Function for move forward by a specific number of mm
     - [ ] Function to turn by a specific number of degrees
     - [ ] Figure out strategy

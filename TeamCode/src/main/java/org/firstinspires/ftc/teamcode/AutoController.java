@@ -64,12 +64,16 @@ public class AutoController extends LinearOpMode {
         // telemetry.addData("Path", "Complete");
         // telemetry.update();
         // sleep(1000);  // pause to display final telemetry message.
-        driveToPosition(0.5, 0.5);
+        driveToPosition(100, 40);
     }
 
-    private void driveToPosition(double xloc, double yloc) {
-        driveForward(xloc - xLocEstimate);
-        // TODO: Use yloc
+    // forward and right in mm
+    private void driveToPosition(double forward, double right) {
+        double theta = Math.atan2(forward, right);
+        double r = Math.hypot(right, forward);
+
+        rotateAngle(theta);
+        driveForward(r);
     }
 
     private void driveForward(double xdist) {

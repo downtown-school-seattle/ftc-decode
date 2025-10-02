@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.annotation.SuppressLint;
+
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -22,7 +24,7 @@ public class TeleOpMode extends LinearOpMode {
         ROBOT_RELATIVE,
     }
 
-    public static double countsPerInch = (537.7*19.2)/((104/25.4)*Math.PI);
+    public static double countsPerMM = (537.7*19.2)/((104)*Math.PI);
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
@@ -32,17 +34,13 @@ public class TeleOpMode extends LinearOpMode {
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
-    double xLocEstimate; // Overall xloc best guess
-    // 0 = back 1 = front
-
-    double yLocEstimate; // Overall yloc best guess
-    // 0 = left 1 = right
-
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
 
     @Override
     public void runOpMode() {
+        initAprilTagProcessor();
+
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
@@ -74,6 +72,8 @@ public class TeleOpMode extends LinearOpMode {
         }
 
         while (opModeIsActive()) {
+            telemetryAprilTag();
+
             telemetry.addData("Status", "Running");
             telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
             telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
@@ -179,6 +179,7 @@ public class TeleOpMode extends LinearOpMode {
         visionPortal = builder.build();
     }
 
+    @SuppressLint("DefaultLocale")
     private void telemetryAprilTag() { //code I stole from the example... if it doesn't work, it's not my fault - Hendrix
 
         List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();

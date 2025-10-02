@@ -1,16 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "Auto Controller v0.1", group = "team code")
-public class AutoController extends OpMode {
+public class AutoController extends LinearOpMode {
     
     double xLocEstimate = 0; // Overall xloc best guess
     // 0 = back 1 = front
@@ -29,8 +27,9 @@ public class AutoController extends OpMode {
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
     IMU imu;
+
     @Override
-    public void init() {
+    public void runOpMode() {
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
@@ -46,18 +45,12 @@ public class AutoController extends OpMode {
 
         // Send telemetry message to indicate successful Encoder reset
         telemetry.addData("Starting at",  "%7d :%7d",
-                          frontLeftDrive.getCurrentPosition(),
-                          frontRightDrive.getCurrentPosition());
+                frontLeftDrive.getCurrentPosition(),
+                frontRightDrive.getCurrentPosition());
         telemetry.update();
 
-        // // Wait for the game to start (driver presses START)
-        // waitForStart();
-
-        // // Step through each leg of the path,
-        // // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        // encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
-        // encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        // encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
+        // Wait for the game to start (driver presses START)
+        waitForStart();
 
         // telemetry.addData("Path", "Complete");
         // telemetry.update();
@@ -67,7 +60,7 @@ public class AutoController extends OpMode {
 
     private void driveToPosition(double xloc, double yloc) {
         driveForward(xloc - xLocEstimate);
-
+        // TODO: Use yloc
     }
 
     private void driveForward(double xdist) {
@@ -94,15 +87,6 @@ public class AutoController extends OpMode {
         frontRightDrive.setPower(fr);
         backRightDrive.setPower(br);
         backLeftDrive.setPower(bl);
-    }
-
-    @Override
-    public void loop() {
-
-    }
-
-    public void moveForward(double inches){
-
     }
 
     void initializeIMU() {

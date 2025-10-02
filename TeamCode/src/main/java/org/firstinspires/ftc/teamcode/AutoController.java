@@ -20,6 +20,21 @@ public class AutoController extends LinearOpMode {
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
+    // % of full rotation per second
+    static final double rotateSpeed = 0.5;
+
+
+    // The robot isn't quite a square, so seperate worldXSize and worldYSize
+    // Seem to be needed. (anything else assumes the robot is a point)
+    // However, what happens if the robot is rotated? The world size would have to change
+    // Far easier is to approximate the robot as a sphere
+    // Only cost is 0.1m on one side of the map that can't be accessed
+
+    static final double WORLD_SIZE = ((12. * 12.) / 25.4) - 630.5813904643873;
+
+    double xwidth = 440;
+    double ywidth = 451.7;
+
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
     DcMotor backLeftDrive;
@@ -69,11 +84,11 @@ public class AutoController extends LinearOpMode {
     }
 
     private void driveForward(double xdist) {
-        ElapsedTime runtime = new ElapsedTime();
-        runtime.reset();
-        double timeToGo = xdist / speed;
         setSpeeds(1, 1, 1, 1);
-        while (runtime.seconds() < timeToGo) {}
+        while (getAverageRotations() < xdist) {
+            telemetry.addLine("Going forward...");
+            telemetry.update();
+        }
         setSpeeds(0, 0, 0, 0);
     }
 
@@ -92,6 +107,15 @@ public class AutoController extends LinearOpMode {
         frontRightDrive.setPower(fr);
         backRightDrive.setPower(br);
         backLeftDrive.setPower(bl);
+    }
+
+    // returns the average of the four wheels' travel distance in mm
+    private double getAverageRotations() {
+        double fl = frontLeftDrive.getCurrentPosition() / 2.54;
+        double fr = frontRightDrive.getCurrentPosition() / 2.54;
+        double bl = backLeftDrive.getCurrentPosition() / 2.54;
+        double br = backRightDrive.getCurrentPosition() / 2.54;
+        return (fl + fr + bl + br) / 4;
     }
 
     void initializeIMU() {

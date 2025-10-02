@@ -92,7 +92,7 @@ public class AutoController extends LinearOpMode {
         setSpeeds(0, 0, 0, 0);
     }
 
-    // angles are in % of full rotation
+    // angles are in radians
     private void rotateAngle(double angle) {
         ElapsedTime runtime = new ElapsedTime();
         runtime.reset();

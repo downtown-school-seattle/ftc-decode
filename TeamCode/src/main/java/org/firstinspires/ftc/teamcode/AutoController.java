@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "Auto Controller v0.1", group = "team code")
 public class AutoController extends OpMode {
@@ -18,10 +19,10 @@ public class AutoController extends OpMode {
     // 0 = left 1 = right
     
     // % of world per second
-    const double speed = 1; // TODO: calculate
+    static final double speed = 1; // TODO: calculate
     
     // % of full rotation per second
-    const double rotateSpeed = 0.5;
+    static final double rotateSpeed = 0.5;
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
@@ -43,13 +44,10 @@ public class AutoController extends OpMode {
         frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
         // Send telemetry message to indicate successful Encoder reset
         telemetry.addData("Starting at",  "%7d :%7d",
-                          leftDrive.getCurrentPosition(),
-                          rightDrive.getCurrentPosition());
+                          frontLeftDrive.getCurrentPosition(),
+                          frontRightDrive.getCurrentPosition());
         telemetry.update();
 
         // // Wait for the game to start (driver presses START)
@@ -83,10 +81,10 @@ public class AutoController extends OpMode {
 
     // angles are in % of full rotation
     private void rotateAngle(double angle) {
-        ElapsedTime runtime = new ElapsedTime.
+        ElapsedTime runtime = new ElapsedTime();
         runtime.reset();
-        double timeToGO = angle / rotateSpeed;
-        set speeds(1, -1, -1, 1);
+        double timeToGo = angle / rotateSpeed;
+        setSpeeds(1, -1, -1, 1);
         while (runtime.seconds() < timeToGo) {}
         setSpeeds(0, 0, 0, 0);
     }

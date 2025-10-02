@@ -10,20 +10,13 @@ import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp
-public class TeleOpMode extends LinearOpMode {
-    enum DriveMode {
-        FIELD_RELATIVE,
-        ROBOT_RELATIVE,
-        
-    }
+public class MeasureMode extends LinearOpMode {
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
     IMU imu;
-
-    DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
     @Override
     public void runOpMode() {
@@ -37,6 +30,7 @@ public class TeleOpMode extends LinearOpMode {
         backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+
         imu = hardwareMap.get(IMU.class, "imu");
         initializeIMU();
 
@@ -46,16 +40,7 @@ public class TeleOpMode extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        while (!isStarted()) {
-            telemetry.addData("Drive Mode", driveMode.name());
-            telemetry.update();
-
-            if (gamepad1.left_bumper) {
-                driveMode = DriveMode.FIELD_RELATIVE;
-            } else if (gamepad1.right_bumper) {
-                driveMode = DriveMode.ROBOT_RELATIVE;
-            }
-        }
+        waitForStart();
 
         while (opModeIsActive()) {
             telemetry.addData("Status", "Running");
@@ -65,46 +50,12 @@ public class TeleOpMode extends LinearOpMode {
             telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
             telemetry.update();
 
-            double speedCap = 1;
-            if (gamepad1.b) {
-                speedCap = 0.5;
-            }
-
-            switch (driveMode) {
-                case FIELD_RELATIVE:
-                    driveFieldRelative(
-                        -gamepad1.left_stick_y * speedCap,
-                        gamepad1.left_stick_x * speedCap,
-                        gamepad1.right_stick_x * speedCap
-                    );
-                    break;
-                case ROBOT_RELATIVE:
-                    drive(
-                            -gamepad1.left_stick_y * speedCap,
-                            gamepad1.left_stick_x * speedCap,
-                            gamepad1.right_stick_x * speedCap
-                    );
-                    break;
-            }
+            drive(
+                    -0.1,
+                    0,
+                    0
+            );
         }
-    }
-
-    // This routine drives the robot field relative
-    private void driveFieldRelative(double forward, double right, double rotate) {
-        // First, convert direction being asked to drive to polar coordinates
-        double theta = Math.atan2(forward, right);
-        double r = Math.hypot(right, forward);
-
-        // Second, rotate angle by the angle the robot is pointing
-        theta = AngleUnit.normalizeRadians(theta -
-                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
-
-        // Third, convert back to cartesian
-        double newForward = r * Math.sin(theta);
-        double newRight = r * Math.cos(theta);
-
-        // Finally, call the drive method with robot relative forward and right amounts
-        drive(newForward, newRight, rotate);
     }
 
     // Thanks to FTC16072 for sharing this code!!

@@ -24,7 +24,7 @@ public class TeleOpMode extends LinearOpMode {
         ROBOT_RELATIVE,
     }
 
-    public static double countsPerMM = (537.7*19.2)/((104)*Math.PI);
+    public static double ENCODER_PER_MM = (537.7*19.2)/((104)*Math.PI);
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;

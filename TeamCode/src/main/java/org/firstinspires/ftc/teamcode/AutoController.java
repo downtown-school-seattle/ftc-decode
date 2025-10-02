@@ -7,6 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 @Autonomous(name = "Auto Controller v0.1", group = "team code")
 public class AutoController extends LinearOpMode {
     
@@ -15,12 +17,8 @@ public class AutoController extends LinearOpMode {
 
     double yLocEstimate = 0; // Overall yloc best guess
     // 0 = left 1 = right
-    
-    // % of world per second
-    static final double speed = 1; // TODO: calculate
-    
-    // % of full rotation per second
-    static final double rotateSpeed = 0.5;
+
+    static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
@@ -62,6 +60,9 @@ public class AutoController extends LinearOpMode {
     private void driveToPosition(double forward, double right) {
         double theta = Math.atan2(forward, right);
         double r = Math.hypot(right, forward);
+
+        theta = AngleUnit.normalizeRadians(theta -
+                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
 
         rotateAngle(theta);
         driveForward(r);

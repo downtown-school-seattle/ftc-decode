@@ -45,7 +45,7 @@ public class AutoController extends OpMode {
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
     IMU imu;
-    GoBildaPinpointDriver pinpointDriver;
+    GoBildaPinpointDriver pinpoint;
 
     double targetX = 100;
     double targetY = 0;
@@ -57,17 +57,17 @@ public class AutoController extends OpMode {
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
-        pinpointDriver = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
         imu = hardwareMap.get(IMU.class, "imu");
         initializeIMU();
 
-        frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        pinpointDriver.resetPosAndIMU();
+        configurePinpoint();
 
         telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
         telemetry.update();
@@ -75,12 +75,13 @@ public class AutoController extends OpMode {
 
     @Override
     public void loop() {
-        double xDistance = targetX - pinpointDriver.getPosY(DistanceUnit.MM);
-        double yDistance = targetY - pinpointDriver.getPosX(DistanceUnit.MM);
-        double rotDistance = targetRadians - pinpointDriver.getHeading(AngleUnit.DEGREES);
+        double xDistance = targetX - pinpoint.getPosY(DistanceUnit.MM);
+        double yDistance = targetY - pinpoint.getPosX(DistanceUnit.MM);
+        double rotDistance = targetRadians - pinpoint.getHeading(AngleUnit.DEGREES);
 
         if (Math.abs(xDistance) + Math.abs(yDistance) < BRAKE_THRESHOLD * 2 && Math.abs(rotDistance) < ROTATE_THRESHOLD) {
             // TODO: update targets
+            stop();
         } else {
             driveFieldRelative(Math.signum(yDistance), Math.signum(xDistance), Math.signum(rotDistance));
         }
@@ -143,5 +144,46 @@ public class AutoController extends OpMode {
         RevHubOrientationOnRobot orientationOnRobot = new
                 RevHubOrientationOnRobot(logoDirection, usbDirection);
         imu.initialize(new IMU.Parameters(orientationOnRobot));
+    }
+
+    // Pinpoint is centered on the rotation
+    public void configurePinpoint(){
+        /*
+         *  Set the odometry pod positions relative to the point that you want the position to be measured from.
+         *
+         *  The X pod offset refers to how far sideways from the tracking point the X (forward) odometry pod is.
+         *  Left of the center is a positive number, right of center is a negative number.
+         *
+         *  The Y pod offset refers to how far forwards from the tracking point the Y (strafe) odometry pod is.
+         *  Forward of center is a positive number, backwards is a negative number.
+         */
+        pinpoint.setOffsets(-22.0, -172.0, DistanceUnit.MM);
+
+        /*
+         * Set the kind of pods used by your robot. If you're using goBILDA odometry pods, select either
+         * the goBILDA_SWINGARM_POD, or the goBILDA_4_BAR_POD.
+         * If you're using another kind of odometry pod, uncomment setEncoderResolution and input the
+         * number of ticks per unit of your odometry pod.  For example:
+         *     pinpoint.setEncoderResolution(13.26291192, DistanceUnit.MM);
+         */
+        pinpoint.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+
+        /*
+         * Set the direction that each of the two odometry pods count. The X (forward) pod should
+         * increase when you move the robot forward. And the Y (strafe) pod should increase when
+         * you move the robot to the left.
+         */
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                GoBildaPinpointDriver.EncoderDirection.FORWARD);
+
+        /*
+         * Before running the robot, recalibrate the IMU. This needs to happen when the robot is stationary
+         * The IMU will automatically calibrate when first powered on, but recalibrating before running
+         * the robot is a good idea to ensure that the calibration is "good".
+         * resetPosAndIMU will reset the position to 0,0,0 and also recalibrate the IMU.
+         * This is recommended before you run your autonomous, as a bad initial calibration can cause
+         * an incorrect starting value for x, y, and heading.
+         */
+        pinpoint.resetPosAndIMU();
     }
 }

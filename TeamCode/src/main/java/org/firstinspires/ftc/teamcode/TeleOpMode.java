@@ -205,7 +205,7 @@ public class TeleOpMode extends LinearOpMode {
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
-        builder.setCamera(hardwareMap.get(WebcamName.class, "cam-1"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
         builder.addProcessor(aprilTagProcessor);
 
         visionPortal = builder.build();

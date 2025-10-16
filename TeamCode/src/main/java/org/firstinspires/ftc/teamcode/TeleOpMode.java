@@ -27,6 +27,11 @@ public class TeleOpMode extends LinearOpMode {
         ROBOT_RELATIVE,
     }
 
+    public enum MechOption{
+        SHOOTING_MECH,
+        INTAKE_MECH,
+    }
+
     enum AllianceColor {
         RED,
         BLUE
@@ -47,6 +52,9 @@ public class TeleOpMode extends LinearOpMode {
     DcMotor frontRightDrive;
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
+    DcMotor rampPitch;
+    DcMotor leftIntake;
+    DcMotor rightIntake;
     IMU imu;
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
@@ -62,6 +70,10 @@ public class TeleOpMode extends LinearOpMode {
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
+
+        rampPitch = hardwareMap.get(DcMotor.class, "ramp_pitch");
+        leftIntake = hardwareMap.get(DcMotor.class, "left_intake");
+        rightIntake = hardwareMap.get(DcMotor.class, "right_intake");
 
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -123,6 +135,26 @@ public class TeleOpMode extends LinearOpMode {
                     );
                     break;
             }
+        }
+    }
+
+    public void switchMechanism(MechOption current){
+
+        double power = 1.0;
+
+        switch (current){
+            case SHOOTING_MECH:
+                leftIntake.setDirection(DcMotorSimple.Direction.FORWARD);
+                rightIntake.setDirection(DcMotorSimple.Direction.FORWARD);
+                rampPitch.setDirection(DcMotorSimple.Direction.REVERSE);
+                rampPitch.setPower(power);
+                break;
+            case INTAKE_MECH:
+                leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+                rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+                rampPitch.setDirection(DcMotorSimple.Direction.FORWARD);
+                rampPitch.setPower(power);
+                break;
         }
     }
 
@@ -190,14 +222,14 @@ public class TeleOpMode extends LinearOpMode {
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
-        builder.setCamera(hardwareMap.get(WebcamName.class, "cam-1"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
         builder.addProcessor(aprilTagProcessor);
 
         visionPortal = builder.build();
     }
 
     @SuppressLint("DefaultLocale")
-    private void telemetryAprilTag() {
+    private void telemetryAprilTag() { //code I stole from the example... if it doesn't work, it's not my fault - Hendrix
 
         List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());

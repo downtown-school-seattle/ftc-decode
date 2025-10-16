@@ -9,11 +9,14 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 
+import org.firstinspires.ftc.robotcontroller.external.samples.RobotAutoDriveByEncoder_Linear;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import org.firstinspires.ftc.teamcode.blueTeleOp;
 
 import java.util.List;
 
@@ -23,6 +26,20 @@ public class TeleOpMode extends LinearOpMode {
         FIELD_RELATIVE,
         ROBOT_RELATIVE,
     }
+
+    enum AllianceColor {
+        RED,
+        BLUE
+    }
+
+    enum Obelisk {
+        PPG,
+        PGP,
+        GPP
+    }
+
+    AllianceColor allianceColor = AllianceColor.RED;
+    Obelisk obelisk = Obelisk.PPG;
 
     public static double ENCODER_PER_MM = (537.7*19.2)/((104)*Math.PI);
 
@@ -180,28 +197,37 @@ public class TeleOpMode extends LinearOpMode {
     }
 
     @SuppressLint("DefaultLocale")
-    private void telemetryAprilTag() { //code I stole from the example... if it doesn't work, it's not my fault - Hendrix
+    private void telemetryAprilTag() {
 
         List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());
 
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
-            if (detection.metadata != null) {
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
-                telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
-                telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+            if (detection.id == 20 && allianceColor == AllianceColor.BLUE) {
+                telemetry.addData("BLUE April Tag", "Detected");
+            } else if (detection.id == 21) {
+                obelisk = Obelisk.PPG;
+                telemetry.addData("Obelisk", "PPG");
+            } else if (detection.id == 22) {
+                obelisk = Obelisk.PGP;
+                telemetry.addData("Obelisk", "PGP");
+            } else if (detection.id == 23) {
+                obelisk = Obelisk.GPP;
+                telemetry.addData("Obelisk", "GPP");
+            } else if (detection.id == 24 && allianceColor == AllianceColor.RED) {
+                telemetry.addData("RED April Tag", "Detected");
             } else {
-                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
-                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+                break;
             }
+            telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
+            telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+            telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+
+            // Add "key" information to telemetry
+            telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
+            telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
+            telemetry.addLine("RBE = Range, Bearing & Elevation");
         }
-
-        // Add "key" information to telemetry
-        telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
-        telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
-        telemetry.addLine("RBE = Range, Bearing & Elevation");
-
     }
 }

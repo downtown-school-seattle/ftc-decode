@@ -9,10 +9,11 @@ import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
 @Autonomous(name = "Auto Controller v0.1", group = "team code")
 public class AutoController extends OpMode {
-    
+
     double xLocEstimate = 0; // Overall xloc best guess
     // 0 = back 1 = front
 
@@ -25,8 +26,10 @@ public class AutoController extends OpMode {
     static final double ROTATE_SPEED = 0.5;
 
     // mm
-    static final double BRAKE_THRESHOLD = 10;
-    static final double ROTATE_THRESHOLD = 10;
+    static final double BRAKE_THRESHOLD = 20;
+    static final double ROTATE_THRESHOLD = Math.toRadians(1);
+    public static final double STOP_DISTANCE = 100;
+    public static final double STOP_TURN_DISTANCE = Math.toRadians(10);
 
 
     // TODO: why do we need this again?
@@ -75,27 +78,47 @@ public class AutoController extends OpMode {
 
     @Override
     public void loop() {
-        double xDistance = targetX - pinpoint.getPosY(DistanceUnit.MM);
-        double yDistance = targetY - pinpoint.getPosX(DistanceUnit.MM);
-        double rotDistance = targetRadians - pinpoint.getHeading(AngleUnit.DEGREES);
+        pinpoint.update();
+        Pose2D pose = pinpoint.getPosition();
+
+
+        double xDistance = targetX - pose.getX(DistanceUnit.MM);
+        double yDistance = targetY - pose.getY(DistanceUnit.MM);
+        double rotDistance = AngleUnit.normalizeRadians(targetRadians - pose.getHeading(AngleUnit.DEGREES));
+
+        telemetry.addData("y pos (forward)", pose.getX(DistanceUnit.MM));
+        telemetry.addData("x pos (strafe)", pose.getY(DistanceUnit.MM));
+        telemetry.addData("heading (yaw)", pose.getHeading(AngleUnit.RADIANS));telemetry.addData("Y dist", yDistance);
+        telemetry.addData("X dist", xDistance);
+        telemetry.addData("rot dist", rotDistance);
+        telemetry.update();
 
         if (Math.abs(xDistance) + Math.abs(yDistance) < BRAKE_THRESHOLD * 2 && Math.abs(rotDistance) < ROTATE_THRESHOLD) {
             // TODO: update targets
+            telemetry.addLine("stopping");
             stop();
         } else {
-            driveFieldRelative(Math.signum(yDistance), Math.signum(xDistance), Math.signum(rotDistance));
+            driveFieldRelative(
+                    powerModulate(yDistance, STOP_DISTANCE),
+                    powerModulate(xDistance, STOP_DISTANCE),
+                    powerModulate(rotDistance, STOP_TURN_DISTANCE),
+                    pose
+            );
         }
     }
 
+    private double powerModulate(double distance, double stopDistance) {
+        return Math.signum(distance) * Math.min(distance / stopDistance, 1);
+    }
+
     // This routine drives the robot field relative
-    private void driveFieldRelative(double forward, double right, double rotate) {
+    private void driveFieldRelative(double forward, double right, double rotate, Pose2D pose) {
         // First, convert direction being asked to drive to polar coordinates
         double theta = Math.atan2(forward, right);
         double r = Math.hypot(right, forward);
 
         // Second, rotate angle by the angle the robot is pointing
-        theta = AngleUnit.normalizeRadians(theta -
-                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+        theta = AngleUnit.normalizeRadians(theta - pose.getHeading(AngleUnit.RADIANS));
 
         // Third, convert back to cartesian
         double newForward = r * Math.sin(theta);

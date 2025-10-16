@@ -7,7 +7,7 @@
 ## Problems To-Do
 
 - [1] Read april tags - Hendrix
-    - [ ] Obelisk
+    - [x] Obelisk
     - [ ] Goal tag
 - [ ] (use goBuilda pinpoint?)
 - [1] Operate intake and shooting

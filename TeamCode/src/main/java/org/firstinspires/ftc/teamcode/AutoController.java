@@ -5,20 +5,15 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
-@Autonomous(name = "Auto Controller v0.1", group = "team code")
+@Autonomous(name = "Auto Controller", group = "team code")
 public class AutoController extends OpMode {
-
-    double xLocEstimate = 0; // Overall xloc best guess
-    // 0 = back 1 = front
-
-    double yLocEstimate = 0; // Overall yloc best guess
-    // 0 = left 1 = right
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -26,10 +21,12 @@ public class AutoController extends OpMode {
     static final double ROTATE_SPEED = 0.5;
 
     // mm
-    static final double BRAKE_THRESHOLD = 20;
-    static final double ROTATE_THRESHOLD = Math.toRadians(1);
-    public static final double STOP_DISTANCE = 100;
-    public static final double STOP_TURN_DISTANCE = Math.toRadians(10);
+    static final double BRAKE_THRESHOLD = 10;
+    static final double ROTATE_THRESHOLD = Math.toRadians(5);
+    // Distance in mm it takes the robot to stop
+    static final double FORWARD_RAMP_DISTANCE = 600;
+    // Distance in radians it takes the robot to stop
+    static final double TURN_RAMP_DISTANCE = Math.toRadians(20);
 
 
     // TODO: why do we need this again?
@@ -50,7 +47,7 @@ public class AutoController extends OpMode {
     IMU imu;
     GoBildaPinpointDriver pinpoint;
 
-    double targetX = 100;
+    double targetX = 0;
     double targetY = 0;
     double targetRadians = 0;
 
@@ -70,45 +67,90 @@ public class AutoController extends OpMode {
         frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        frontLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+
         configurePinpoint();
 
         telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
+        telemetry.addData("stop dist", FORWARD_RAMP_DISTANCE);
         telemetry.update();
+
     }
+
+//    @Override
+//    public void init_loop() {
+//        if (gamepad1.aWasPressed()) {
+//            FORWARD_RAMP_DISTANCE += 50;
+//        }
+//        if (gamepad1.bWasPressed()) {
+//            FORWARD_RAMP_DISTANCE -= 50;
+//        }
+//        if (gamepad1.xWasPressed()) {
+//            FORWARD_RAMP_DISTANCE += 10;
+//        }
+//        if (gamepad1.yWasPressed()) {
+//            FORWARD_RAMP_DISTANCE -= 10;
+//        }
+//
+//        telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
+//        telemetry.addData("stop dist", FORWARD_RAMP_DISTANCE);
+//        telemetry.update();
+//    }
 
     @Override
     public void loop() {
         pinpoint.update();
         Pose2D pose = pinpoint.getPosition();
 
-
         double xDistance = targetX - pose.getX(DistanceUnit.MM);
         double yDistance = targetY - pose.getY(DistanceUnit.MM);
-        double rotDistance = AngleUnit.normalizeRadians(targetRadians - pose.getHeading(AngleUnit.DEGREES));
+        double rotDistance = AngleUnit.normalizeRadians(targetRadians - pose.getHeading(AngleUnit.RADIANS));
 
-        telemetry.addData("y pos (forward)", pose.getX(DistanceUnit.MM));
-        telemetry.addData("x pos (strafe)", pose.getY(DistanceUnit.MM));
-        telemetry.addData("heading (yaw)", pose.getHeading(AngleUnit.RADIANS));telemetry.addData("Y dist", yDistance);
+        telemetry.addData("x pos", pose.getX(DistanceUnit.MM));
+        telemetry.addData("y pos", pose.getY(DistanceUnit.MM));
+        telemetry.addData("heading (yaw)", pose.getHeading(AngleUnit.RADIANS));
         telemetry.addData("X dist", xDistance);
+        telemetry.addData("Y dist", yDistance);
         telemetry.addData("rot dist", rotDistance);
         telemetry.update();
 
-        if (Math.abs(xDistance) + Math.abs(yDistance) < BRAKE_THRESHOLD * 2 && Math.abs(rotDistance) < ROTATE_THRESHOLD) {
+
+        if (Math.abs(xDistance) < BRAKE_THRESHOLD) {
+//        if (xDistance < BRAKE_THRESHOLD) {
+            xDistance = 0;
+        }
+        if (Math.abs(yDistance) < BRAKE_THRESHOLD) {
+            yDistance = 0;
+        }
+        if (Math.abs(rotDistance) < ROTATE_THRESHOLD) {
+            rotDistance = 0;
+        }
+
+        if (xDistance == 0 && yDistance == 0 && rotDistance == 0) {
             // TODO: update targets
             telemetry.addLine("stopping");
-            stop();
         } else {
             driveFieldRelative(
-                    powerModulate(yDistance, STOP_DISTANCE),
-                    powerModulate(xDistance, STOP_DISTANCE),
-                    powerModulate(rotDistance, STOP_TURN_DISTANCE),
+                    powerModulate(xDistance, FORWARD_RAMP_DISTANCE),
+//                    Math.signum(xDistance) * 0.3,
+                    powerModulate(-yDistance, FORWARD_RAMP_DISTANCE), // GoBuilda uses an inverted y-axis.
+//                    Math.signum(yDistance) * -0.3,
+                    powerModulate(-rotDistance, TURN_RAMP_DISTANCE), // Drive function expects CW
+//                    Math.signum(-rotDistance),
+//                    0,
                     pose
             );
         }
     }
 
     private double powerModulate(double distance, double stopDistance) {
-        return Math.signum(distance) * Math.min(distance / stopDistance, 1);
+        return Math.signum(distance) * Math.min(Math.abs(distance) / stopDistance, 1);
     }
 
     // This routine drives the robot field relative

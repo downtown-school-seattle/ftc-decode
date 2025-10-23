@@ -9,7 +9,7 @@
 - [1] Read april tags - Hendrix
     - [x] Obelisk
     - [ ] Goal tag
-- [ ] (use goBuilda pinpoint?)
+- [1] (use goBuilda pinpoint?)
 - [1] Operate intake and shooting
 - [ ] Tele Op
   - [x] Basic driving
@@ -18,10 +18,10 @@
   - [x] Show encoder data
   - [x] Reset field positioning
   - [ ] Shooting
-  - [ ] Intake
+  - [1] Intake
   - [ ] (Auto aim?)
 - [ ] Autonomous
-    - [2] Function for move forward by a specific number of mm
-    - [2] Function to turn by a specific number of degrees
+    - [1] Function for move forward by a specific number of mm
+    - [1] Function to turn by a specific number of degrees
     - [x] Function to move by a field-relative vector in mm.
     - [x] Figure out strategy

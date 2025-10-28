@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.annotation.SuppressLint;
+
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -8,14 +10,24 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.util.List;
 import java.util.function.ObjLongConsumer;
 
 @Autonomous(name = "Auto Controller", group = "team code")
 public class AutoController extends LinearOpMode {
+    enum AllianceColor {
+        RED,
+        BLUE
+    }
+
     enum Obelisk {
         PPG(914.4),
         PGP(1524),
@@ -27,6 +39,9 @@ public class AutoController extends LinearOpMode {
             this.fieldPosition = fieldPosition;
         }
     }
+
+    TeleOpMode.AllianceColor allianceColor = TeleOpMode.AllianceColor.RED;
+    TeleOpMode.Obelisk obelisk = TeleOpMode.Obelisk.PPG;
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -53,6 +68,9 @@ public class AutoController extends LinearOpMode {
     DcMotor backRightDrive;
     IMU imu;
     GoBildaPinpointDriver pinpoint;
+
+    private AprilTagProcessor aprilTagProcessor;
+    private VisionPortal visionPortal;
 
     @Override
     public void runOpMode() {
@@ -256,5 +274,51 @@ public class AutoController extends LinearOpMode {
          * an incorrect starting value for x, y, and heading.
          */
         pinpoint.resetPosAndIMU();
+    }
+
+    public void initAprilTagProcessor() {
+        aprilTagProcessor = new AprilTagProcessor.Builder().build();
+
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+        builder.addProcessor(aprilTagProcessor);
+
+        visionPortal = builder.build();
+    }
+
+    @SuppressLint("DefaultLocale")
+    private void telemetryAprilTag() {
+
+        List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
+
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.id == 20 && allianceColor == TeleOpMode.AllianceColor.BLUE) {
+                telemetry.addData("BLUE April Tag", "Detected");
+            } else if (detection.id == 21) {
+                obelisk = TeleOpMode.Obelisk.PPG;
+                telemetry.addData("Obelisk", "PPG");
+            } else if (detection.id == 22) {
+                obelisk = TeleOpMode.Obelisk.PGP;
+                telemetry.addData("Obelisk", "PGP");
+            } else if (detection.id == 23) {
+                obelisk = TeleOpMode.Obelisk.GPP;
+                telemetry.addData("Obelisk", "GPP");
+            } else if (detection.id == 24 && allianceColor == TeleOpMode.AllianceColor.RED) {
+                telemetry.addData("RED April Tag", "Detected");
+            } else {
+                break;
+            }
+            telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
+            telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+            telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+
+            // Add "key" information to telemetry
+            telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
+            telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
+            telemetry.addLine("RBE = Range, Bearing & Elevation");
+        }
     }
 }

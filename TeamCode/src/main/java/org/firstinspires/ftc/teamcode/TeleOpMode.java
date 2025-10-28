@@ -225,7 +225,7 @@ public class TeleOpMode extends LinearOpMode {
     }
 
     @SuppressLint("DefaultLocale")
-    private void telemetryAprilTag() { //code I stole from the example... if it doesn't work, it's not my fault - Hendrix
+    private void telemetryAprilTag() {
 
         List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());

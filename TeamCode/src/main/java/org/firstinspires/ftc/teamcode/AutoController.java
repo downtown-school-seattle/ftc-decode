@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
@@ -12,8 +12,21 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
+import java.util.function.ObjLongConsumer;
+
 @Autonomous(name = "Auto Controller", group = "team code")
-public class AutoController extends OpMode {
+public class AutoController extends LinearOpMode {
+    enum Obelisk {
+        PPG(914.4),
+        PGP(1524),
+        GPP(2133.6);
+
+        public final double fieldPosition;
+
+        Obelisk(double fieldPosition) {
+            this.fieldPosition = fieldPosition;
+        }
+    }
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -29,16 +42,10 @@ public class AutoController extends OpMode {
     static final double TURN_RAMP_DISTANCE = Math.toRadians(20);
 
 
-    // TODO: why do we need this again?
-    // The robot isn't quite a square, so seperate worldXSize and worldYSize
-    // Seem to be needed. (anything else assumes the robot is a point)
-    // However, what happens if the robot is rotated? The world size would have to change
-    // Far easier is to approximate the robot as a sphere
-    // Only cost is 0.1m on one side of the map that can't be accessed
-    static final double WORLD_SIZE = ((12. * 12.) / 25.4) - 630.5813904643873;
-
 //    double xwidth = 440;
 //    double ywidth = 451.7;
+
+    Obelisk detectedObelisk = Obelisk.PPG;
 
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
@@ -47,12 +54,24 @@ public class AutoController extends OpMode {
     IMU imu;
     GoBildaPinpointDriver pinpoint;
 
-    double targetX = 0;
-    double targetY = 0;
-    double targetRadians = 0;
-
     @Override
-    public void init() {
+    public void runOpMode() {
+        initRobot();
+        waitForStart();
+
+        goToTarget(0, 0, -Math.toRadians(-15));
+        shoot(3);
+
+        double xTarget = detectedObelisk.fieldPosition;
+        goToTarget(xTarget, 0, Math.toRadians(90));
+        goToTarget(xTarget, -254, Math.toRadians(90));
+        goToTarget(xTarget, 0, Math.toRadians(90));
+
+        goToTarget(0, 0, -Math.toRadians(-15));
+        shoot(3);
+    }
+
+    public void initRobot() {
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
@@ -83,70 +102,58 @@ public class AutoController extends OpMode {
 
     }
 
-//    @Override
-//    public void init_loop() {
-//        if (gamepad1.aWasPressed()) {
-//            FORWARD_RAMP_DISTANCE += 50;
-//        }
-//        if (gamepad1.bWasPressed()) {
-//            FORWARD_RAMP_DISTANCE -= 50;
-//        }
-//        if (gamepad1.xWasPressed()) {
-//            FORWARD_RAMP_DISTANCE += 10;
-//        }
-//        if (gamepad1.yWasPressed()) {
-//            FORWARD_RAMP_DISTANCE -= 10;
-//        }
-//
-//        telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
-//        telemetry.addData("stop dist", FORWARD_RAMP_DISTANCE);
-//        telemetry.update();
-//    }
+    public void shoot(int balls) {
+        // TODO: Shooting mechanism.
+        sleep(1000L * balls);
+    }
 
-    @Override
-    public void loop() {
-        pinpoint.update();
-        Pose2D pose = pinpoint.getPosition();
+    public void goToTarget(double xTarget, double yTarget, double rotTarget) {
+        double xDistance;
+        double yDistance;
+        double rotDistance;
 
-        double xDistance = targetX - pose.getX(DistanceUnit.MM);
-        double yDistance = targetY - pose.getY(DistanceUnit.MM);
-        double rotDistance = AngleUnit.normalizeRadians(targetRadians - pose.getHeading(AngleUnit.RADIANS));
+        do {
+            pinpoint.update();
+            Pose2D pose = pinpoint.getPosition();
 
-        telemetry.addData("x pos", pose.getX(DistanceUnit.MM));
-        telemetry.addData("y pos", pose.getY(DistanceUnit.MM));
-        telemetry.addData("heading (yaw)", pose.getHeading(AngleUnit.RADIANS));
-        telemetry.addData("X dist", xDistance);
-        telemetry.addData("Y dist", yDistance);
-        telemetry.addData("rot dist", rotDistance);
-        telemetry.update();
+            xDistance = xTarget - pose.getX(DistanceUnit.MM);
+            yDistance = yTarget - pose.getY(DistanceUnit.MM);
+            rotDistance = AngleUnit.normalizeRadians(rotTarget - pose.getHeading(AngleUnit.RADIANS));
 
+            telemetry.addData("x pos", pose.getX(DistanceUnit.MM));
+            telemetry.addData("y pos", pose.getY(DistanceUnit.MM));
+            telemetry.addData("heading (yaw)", pose.getHeading(AngleUnit.RADIANS));
+            telemetry.addData("X dist", xDistance);
+            telemetry.addData("Y dist", yDistance);
+            telemetry.addData("rot dist", rotDistance);
+            telemetry.update();
 
-        if (Math.abs(xDistance) < BRAKE_THRESHOLD) {
-//        if (xDistance < BRAKE_THRESHOLD) {
-            xDistance = 0;
-        }
-        if (Math.abs(yDistance) < BRAKE_THRESHOLD) {
-            yDistance = 0;
-        }
-        if (Math.abs(rotDistance) < ROTATE_THRESHOLD) {
-            rotDistance = 0;
-        }
+            if (Math.abs(xDistance) < BRAKE_THRESHOLD) {
+                xDistance = 0;
+            }
+            if (Math.abs(yDistance) < BRAKE_THRESHOLD) {
+                yDistance = 0;
+            }
+            if (Math.abs(rotDistance) < ROTATE_THRESHOLD) {
+                rotDistance = 0;
+            }
 
-        if (xDistance == 0 && yDistance == 0 && rotDistance == 0) {
-            // TODO: update targets
-            telemetry.addLine("stopping");
-        } else {
-            driveFieldRelative(
-                    powerModulate(xDistance, FORWARD_RAMP_DISTANCE),
+            if (xDistance == 0 && yDistance == 0 && rotDistance == 0) {
+                // TODO: update targets
+                telemetry.addLine("stopping");
+            } else {
+                driveFieldRelative(
+                        powerModulate(xDistance, FORWARD_RAMP_DISTANCE),
 //                    Math.signum(xDistance) * 0.3,
-                    powerModulate(-yDistance, FORWARD_RAMP_DISTANCE), // GoBuilda uses an inverted y-axis.
+                        powerModulate(-yDistance, FORWARD_RAMP_DISTANCE), // GoBuilda uses an inverted y-axis.
 //                    Math.signum(yDistance) * -0.3,
-                    powerModulate(-rotDistance, TURN_RAMP_DISTANCE), // Drive function expects CW
+                        powerModulate(-rotDistance, TURN_RAMP_DISTANCE), // Drive function expects CW
 //                    Math.signum(-rotDistance),
 //                    0,
-                    pose
-            );
-        }
+                        pose
+                );
+            }
+        } while (opModeIsActive() && xDistance != 0 && yDistance != 0 && rotDistance != 0);
     }
 
     private double powerModulate(double distance, double stopDistance) {

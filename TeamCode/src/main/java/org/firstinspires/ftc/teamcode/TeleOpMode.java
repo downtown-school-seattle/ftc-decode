@@ -9,14 +9,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.RobotAutoDriveByEncoder_Linear;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-
-import org.firstinspires.ftc.teamcode.blueTeleOp;
 
 import java.util.List;
 
@@ -27,7 +24,7 @@ public class TeleOpMode extends LinearOpMode {
         ROBOT_RELATIVE,
     }
 
-    public enum MechOption{
+    public enum MechOption {
         SHOOTING_MECH,
         INTAKE_MECH,
     }
@@ -138,8 +135,7 @@ public class TeleOpMode extends LinearOpMode {
         }
     }
 
-    public void switchMechanism(MechOption current){
-
+    public void switchMechanism(MechOption current) {
         double power = 1.0;
 
         switch (current){

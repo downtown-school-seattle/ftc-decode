@@ -23,10 +23,6 @@ import java.util.function.ObjLongConsumer;
 
 @Autonomous(name = "Auto Controller", group = "team code")
 public class AutoController extends LinearOpMode {
-    enum AllianceColor {
-        RED,
-        BLUE
-    }
 
     enum Obelisk {
         PPG(914.4),
@@ -39,9 +35,6 @@ public class AutoController extends LinearOpMode {
             this.fieldPosition = fieldPosition;
         }
     }
-
-    TeleOpMode.AllianceColor allianceColor = TeleOpMode.AllianceColor.RED;
-    TeleOpMode.Obelisk obelisk = TeleOpMode.Obelisk.PPG;
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -74,6 +67,8 @@ public class AutoController extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        initAprilTagProcessor();
+
         initRobot();
         waitForStart();
 
@@ -295,19 +290,15 @@ public class AutoController extends LinearOpMode {
 
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
-            if (detection.id == 20 && allianceColor == TeleOpMode.AllianceColor.BLUE) {
-                telemetry.addData("BLUE April Tag", "Detected");
-            } else if (detection.id == 21) {
-                obelisk = TeleOpMode.Obelisk.PPG;
+            if (detection.id == 21) {
+                detectedObelisk = detectedObelisk.PPG;
                 telemetry.addData("Obelisk", "PPG");
             } else if (detection.id == 22) {
-                obelisk = TeleOpMode.Obelisk.PGP;
+                detectedObelisk = detectedObelisk.PGP;
                 telemetry.addData("Obelisk", "PGP");
             } else if (detection.id == 23) {
-                obelisk = TeleOpMode.Obelisk.GPP;
+                detectedObelisk = detectedObelisk.GPP;
                 telemetry.addData("Obelisk", "GPP");
-            } else if (detection.id == 24 && allianceColor == TeleOpMode.AllianceColor.RED) {
-                telemetry.addData("RED April Tag", "Detected");
             } else {
                 break;
             }

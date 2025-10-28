@@ -139,7 +139,6 @@ public class AutoController extends LinearOpMode {
             }
 
             if (xDistance == 0 && yDistance == 0 && rotDistance == 0) {
-                // TODO: update targets
                 telemetry.addLine("stopping");
             } else {
                 driveFieldRelative(

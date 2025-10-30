@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import android.annotation.SuppressLint;
 
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -11,11 +12,14 @@ import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 
 @TeleOp
 public class TeleOpMode extends LinearOpMode {
@@ -23,6 +27,14 @@ public class TeleOpMode extends LinearOpMode {
         FIELD_RELATIVE,
         ROBOT_RELATIVE,
     }
+
+    double currentX;
+    double previousX;
+    double currentY;
+    double previousY;
+    double currentAngle;
+    double previousAngle;
+
 
     public static double ENCODER_PER_MM = (537.7*19.2)/((104)*Math.PI);
 
@@ -37,6 +49,12 @@ public class TeleOpMode extends LinearOpMode {
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
 
+    GoBildaPinpointDriver pinpoint;
+    double loopsPerSecond;
+    double loopTime;
+    double previousTime;
+
+
     @Override
     public void runOpMode() {
         initAprilTagProcessor();
@@ -45,6 +63,7 @@ public class TeleOpMode extends LinearOpMode {
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -60,6 +79,8 @@ public class TeleOpMode extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
+        configurePinpoint();
+
         while (!isStarted()) {
             telemetry.addData("Drive Mode", driveMode.name());
             telemetry.update();
@@ -72,15 +93,43 @@ public class TeleOpMode extends LinearOpMode {
         }
 
         while (opModeIsActive()) {
+
+            double currentTime = System.currentTimeMillis();
+            pinpoint.update();
+            currentAngle = pinpoint.getHeading(AngleUnit.RADIANS);
+            currentX = pinpoint.getPosX(DistanceUnit.MM);
+            currentY = pinpoint.getPosY(DistanceUnit.MM);
+
             telemetryAprilTag();
+
+            loopTime = currentTime-previousTime;
+
+            telemetry.addData("currentTime", currentTime);
+            telemetry.addData("previousTime", currentTime);
+
+            telemetry.addData("pinpointX", pinpoint.getPosX(DistanceUnit.MM));
+
+            telemetry.addData("loopTime", loopTime);
+            loopsPerSecond = 1/(loopTime/1000);
+
 
             telemetry.addData("Status", "Running");
             telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
             telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
             telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
             telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
+            telemetry.addData("loopsPerSecond", loopsPerSecond);
+
+            telemetry.addData("XVelocity", getVelocityX()*loopsPerSecond);
+            telemetry.addData("YVelocity", getVelocityY()*loopsPerSecond);
+            telemetry.addData("AngularVelocity", getAngularVelocity()*loopsPerSecond);
 
             telemetry.update();
+
+            pinpoint.update();
+            currentAngle = pinpoint.getHeading(AngleUnit.RADIANS);
+            currentX = pinpoint.getPosX(DistanceUnit.MM);
+            currentY = pinpoint.getPosY(DistanceUnit.MM);
 
             double speedCap = 1;
             if (gamepad1.b) {
@@ -106,6 +155,10 @@ public class TeleOpMode extends LinearOpMode {
                     );
                     break;
             }
+            previousAngle = currentAngle;
+            previousX = currentX;
+            previousY = currentY;
+            previousTime = currentTime;
         }
     }
 
@@ -173,7 +226,7 @@ public class TeleOpMode extends LinearOpMode {
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
-        builder.setCamera(hardwareMap.get(WebcamName.class, "cam-1"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
         builder.addProcessor(aprilTagProcessor);
 
         visionPortal = builder.build();
@@ -204,4 +257,54 @@ public class TeleOpMode extends LinearOpMode {
         telemetry.addLine("RBE = Range, Bearing & Elevation");
 
     }
+    public void configurePinpoint(){
+        /*
+         *  Set the odometry pod positions relative to the point that you want the position to be measured from.
+         *
+         *  The X pod offset refers to how far sideways from the tracking point the X (forward) odometry pod is.
+         *  Left of the center is a positive number, right of center is a negative number.
+         *
+         *  The Y pod offset refers to how far forwards from the tracking point the Y (strafe) odometry pod is.
+         *  Forward of center is a positive number, backwards is a negative number.
+         */
+        pinpoint.setOffsets(-22.0, -172.0, DistanceUnit.MM);
+
+        /*
+         * Set the kind of pods used by your robot. If you're using goBILDA odometry pods, select either
+         * the goBILDA_SWINGARM_POD, or the goBILDA_4_BAR_POD.
+         * If you're using another kind of odometry pod, uncomment setEncoderResolution and input the
+         * number of ticks per unit of your odometry pod.  For example:
+         *     pinpoint.setEncoderResolution(13.26291192, DistanceUnit.MM);
+         */
+        pinpoint.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+
+        /*
+         * Set the direction that each of the two odometry pods count. The X (forward) pod should
+         * increase when you move the robot forward. And the Y (strafe) pod should increase when
+         * you move the robot to the left.
+         */
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                GoBildaPinpointDriver.EncoderDirection.FORWARD);
+
+        /*
+         * Before running the robot, recalibrate the IMU. This needs to happen when the robot is stationary
+         * The IMU will automatically calibrate when first powered on, but recalibrating before running
+         * the robot is a good idea to ensure that the calibration is "good".
+         * resetPosAndIMU will reset the position to 0,0,0 and also recalibrate the IMU.
+         * This is recommended before you run your autonomous, as a bad initial calibration can cause
+         * an incorrect starting value for x, y, and heading.
+         */
+        pinpoint.resetPosAndIMU();
+    }
+
+    public double getVelocityX(){
+        return currentX-previousX;
+    }
+    public double getVelocityY(){
+        return currentY-previousY;
+    }
+    public double getAngularVelocity(){
+        return currentAngle-previousAngle;
+    }
+
 }

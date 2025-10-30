@@ -5,6 +5,7 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -19,6 +20,13 @@ public class AutoController extends OpMode {
     double yLocEstimate = 0; // Overall yloc best guess
     // 0 = left 1 = right
 
+    double currentX;
+    double previousX;
+    double currentY;
+    double previousY;
+    double currentAngle;
+    double previousAngle;
+
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
     // % of full rotation per second
@@ -27,6 +35,22 @@ public class AutoController extends OpMode {
     // mm
     static final double BRAKE_THRESHOLD = 10;
     static final double ROTATE_THRESHOLD = 10;
+    static final double DECELERATION_DISTANCE_X = 450; //This is a placeholder value.
+    // It is the distance in mm for the robot to decelerate from full speed. #TODO change this to a real value.
+
+    static final double DECELERATION_DISTANCE_Y = 300; //This is a placeholder value.
+    // It is the distance in mm for the robot to decelerate from full speed. #TODO change this to a real value.
+
+    static final double DECELERATION_DISTANCE_ANGULAR = Math.PI/6; //This is a placeholder value.
+    // It is the distance in radians for the robot to decelerate from full speed. #TODO change this to a real value.
+    //sec
+    static final double DECELERATION_TIME = 5; //This is a placeholder value.
+    // It is the time in seconds for the robot to decelerate from full speed. #TODO change this to a real value.
+    static final double MAX_MM_PER_SECOND_X = 1000; //TODO change this to a real value.
+    static final double MAX_MM_PER_SECOND_Y = 800; //TODO change this to a real value.
+    static final double MAX_MM_PER_SECOND_RADIANS = 2; //TODO change this to a real value.
+
+    static final double minPowerToMoveRobot = 0.2; //This is a placeholder value.TODO change this to a real value
 
 
     // TODO: why do we need this again?
@@ -67,6 +91,14 @@ public class AutoController extends OpMode {
         frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        frontLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+
         configurePinpoint();
 
         telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
@@ -75,15 +107,53 @@ public class AutoController extends OpMode {
 
     @Override
     public void loop() {
-        double xDistance = targetX - pinpoint.getPosY(DistanceUnit.MM);
-        double yDistance = targetY - pinpoint.getPosX(DistanceUnit.MM);
-        double rotDistance = targetRadians - pinpoint.getHeading(AngleUnit.DEGREES);
+        pinpoint.update();
+        currentAngle = pinpoint.getHeading(AngleUnit.RADIANS);
+        currentX = pinpoint.getPosX(DistanceUnit.MM);
+        currentY = pinpoint.getPosY(DistanceUnit.MM);
+        double xDistance = targetX - currentX;
+        double yDistance = targetY - currentY;
+        double rotDistance = targetRadians - currentAngle;
 
-        if (Math.abs(xDistance) + Math.abs(yDistance) < BRAKE_THRESHOLD * 2 && Math.abs(rotDistance) < ROTATE_THRESHOLD) {
+        move(xDistance, yDistance, rotDistance, 10, Math.PI/12);
+
+        telemetry.addData("currentAngle", currentAngle);
+        telemetry.addData("currentX", currentX);
+        telemetry.addData("currentY", currentY);
+
+        telemetry.addData("rotDistance", rotDistance);
+        telemetry.addData("xDistance", xDistance);
+        telemetry.addData("yDistance", yDistance);
+
+        telemetry.addData("targetRadians", targetRadians);
+        telemetry.addData("targetX", targetX);
+        telemetry.addData("targetY", targetY);
+
+        telemetry.addData("XVelocity", getVelocityX());
+        telemetry.addData("YVelocity", getVelocityY());
+        telemetry.addData("AngularVelocity", getAngularVelocity());
+        telemetry.update();
+
+        previousAngle = currentAngle;
+        previousX = currentX;
+        previousY = currentY;
+    }
+    public boolean move(double xDistance, double yDistance, double rotDistance, double distanceAccuracy,
+                     double rotAccuracy){
+        if (Math.abs(xDistance) + Math.abs(yDistance) < distanceAccuracy * 2 && Math.abs(rotDistance) < rotAccuracy) {
             // TODO: update targets
-            stop();
+            return true;
         } else {
-            driveFieldRelative(Math.signum(yDistance), Math.signum(xDistance), Math.signum(rotDistance));
+//            driveFieldRelative(calculatePowerX(getVelocityX(), xDistance),
+//                    calculatePowerY(getVelocityY(), yDistance),
+//                    calculatePowerAngular(getAngularVelocity(), rotDistance));
+//            driveFieldRelative(-calculatePowerX(getVelocityX(), xDistance), 0, 0);
+            frontLeftDrive.setPower(-calculatePowerX(getVelocityX(), xDistance));
+            frontRightDrive.setPower(-calculatePowerX(getVelocityX(), xDistance));
+            backLeftDrive.setPower(-calculatePowerX(getVelocityX(), xDistance));
+            backRightDrive.setPower(-calculatePowerX(getVelocityX(), xDistance));
+
+            return false;
         }
     }
 
@@ -104,6 +174,53 @@ public class AutoController extends OpMode {
         // Finally, call the drive method with robot relative forward and right amounts
         drive(newForward, newRight, rotate);
     }
+
+    public double calculatePowerX (double velocityX, double distanceToTargetX){
+        double XPower;
+        double shouldHavePower = (DECELERATION_DISTANCE_X/distanceToTargetX)*(velocityX/MAX_MM_PER_SECOND_X);
+        if (Math.abs(shouldHavePower) < 1){
+            if(distanceToTargetX > 0){
+                XPower = 1;
+            } else {
+                XPower = -1;
+            }
+        } else {
+            XPower = 0;
+        }
+        return XPower;
+    }
+
+    public double calculatePowerY (double velocityY, double distanceToTargetY){
+        double YPower;
+        double shouldHavePower = (DECELERATION_DISTANCE_Y/distanceToTargetY)*(velocityY/MAX_MM_PER_SECOND_Y);
+        if (Math.abs(shouldHavePower) < 1){
+            if(distanceToTargetY > 0){
+                YPower = 1;
+            } else {
+                YPower = -1;
+            }
+        } else {
+            YPower = 0;
+        }
+        return YPower;
+    }
+
+    public double calculatePowerAngular (double velocityAngular, double distanceToTargetRadians){
+        double angularPower;
+        double shouldHavePower = (DECELERATION_DISTANCE_ANGULAR/distanceToTargetRadians)*
+                (velocityAngular/MAX_MM_PER_SECOND_RADIANS);
+        if (Math.abs(shouldHavePower) < 1){
+            if(distanceToTargetRadians > 0){
+                angularPower = 1;
+            } else {
+                angularPower = -1;
+            }
+        } else {
+            angularPower = 0;
+        }
+        return angularPower;
+    }
+
 
     // Thanks to FTC16072 for sharing this code!!
     public void drive(double forward, double right, double rotate) {
@@ -146,6 +263,15 @@ public class AutoController extends OpMode {
         imu.initialize(new IMU.Parameters(orientationOnRobot));
     }
 
+    public double getVelocityX(){
+        return currentX-previousX;
+    }
+    public double getVelocityY(){
+        return currentY-previousY;
+    }
+    public double getAngularVelocity(){
+        return currentAngle-previousAngle;
+    }
     // Pinpoint is centered on the rotation
     public void configurePinpoint(){
         /*

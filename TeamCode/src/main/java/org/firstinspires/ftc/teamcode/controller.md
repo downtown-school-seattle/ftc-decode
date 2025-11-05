@@ -8,5 +8,7 @@
 ## While driving
 
 **Left stick**: drive and strafe
-**Right stick X**: Rotate 
-**A**: rests the Yaw to be zero from the way the robot is currently facing
+**Right stick X**: Rotate
+**Left Bumper**: Switch between shooting and intake.
+**A**: Hold down to move the servo to the "active" position.
+**Start**: rests the Yaw to be zero from the way the robot is currently facing

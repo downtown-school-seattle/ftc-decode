@@ -19,7 +19,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-import java.util.function.ObjLongConsumer;
 
 @Autonomous(name = "Auto Controller", group = "team code")
 public class AutoController extends LinearOpMode {
@@ -29,10 +28,10 @@ public class AutoController extends LinearOpMode {
         PGP(1524),
         GPP(2133.6);
 
-        public final double fieldPosition;
+        public final double patternPickUpLocation;
 
-        Obelisk(double fieldPosition) {
-            this.fieldPosition = fieldPosition;
+        Obelisk(double patternPickUpLocation) {
+            this.patternPickUpLocation = patternPickUpLocation;
         }
     }
 
@@ -75,7 +74,7 @@ public class AutoController extends LinearOpMode {
         goToTarget(0, 0, -Math.toRadians(-15));
         shoot(3);
 
-        double xTarget = detectedObelisk.fieldPosition;
+        double xTarget = detectedObelisk.patternPickUpLocation;
         goToTarget(xTarget, 0, Math.toRadians(90));
         goToTarget(xTarget, -254, Math.toRadians(90));
         goToTarget(xTarget, 0, Math.toRadians(90));
@@ -291,13 +290,13 @@ public class AutoController extends LinearOpMode {
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
             if (detection.id == 21) {
-                detectedObelisk = detectedObelisk.PPG;
+                detectedObelisk = Obelisk.PPG;
                 telemetry.addData("Obelisk", "PPG");
             } else if (detection.id == 22) {
-                detectedObelisk = detectedObelisk.PGP;
+                detectedObelisk = Obelisk.PGP;
                 telemetry.addData("Obelisk", "PGP");
             } else if (detection.id == 23) {
-                detectedObelisk = detectedObelisk.GPP;
+                detectedObelisk = Obelisk.GPP;
                 telemetry.addData("Obelisk", "GPP");
             } else {
                 break;

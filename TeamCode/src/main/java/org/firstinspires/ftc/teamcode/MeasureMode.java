@@ -16,6 +16,7 @@ public class MeasureMode extends LinearOpMode {
     DcMotor frontRightDrive;
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
+
     IMU imu;
 
     @Override
@@ -51,7 +52,7 @@ public class MeasureMode extends LinearOpMode {
             telemetry.update();
 
             drive(
-                    -0.1,
+                    -0,
                     0,
                     0
             );

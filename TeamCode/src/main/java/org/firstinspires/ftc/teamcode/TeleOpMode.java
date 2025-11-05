@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -19,6 +20,13 @@ import java.util.List;
 
 @TeleOp
 public class TeleOpMode extends LinearOpMode {
+    public static final double RAMP_PITCH_POWER = 0.5;
+    public static final double RAMP_GEAR_RATIO = 1.0 / 64.0;
+    public static final double SHOOTING_ARM_POS_DORMANT = .8;
+    public static final double SHOOTING_ARM_POS_ACTIVE = .3;
+    public static final double INTAKE_POWER = 0.8;
+    public static final double SHOOT_POWER = 0.8;
+
     enum DriveMode {
         FIELD_RELATIVE,
         ROBOT_RELATIVE,
@@ -52,12 +60,18 @@ public class TeleOpMode extends LinearOpMode {
     DcMotor rampPitch;
     DcMotor leftIntake;
     DcMotor rightIntake;
+    Servo shootingArm;
     IMU imu;
+
+    private boolean shootingArmActive = false;
+    private boolean didSwitchMechWhilstShootingArmActive = false;
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
+
+    MechOption mechOption = MechOption.INTAKE_MECH;
 
     @Override
     public void runOpMode() {
@@ -71,17 +85,23 @@ public class TeleOpMode extends LinearOpMode {
         rampPitch = hardwareMap.get(DcMotor.class, "ramp_pitch");
         leftIntake = hardwareMap.get(DcMotor.class, "left_intake");
         rightIntake = hardwareMap.get(DcMotor.class, "right_intake");
+        shootingArm = hardwareMap.get(Servo.class, "shooting_arm");
 
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+//        rampPitch.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+//        rampPitch.setPower(RAMP_PITCH_POWER);
+        leftIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         imu = hardwareMap.get(IMU.class, "imu");
         initializeIMU();
 
-        frontLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRightDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRightDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -97,6 +117,10 @@ public class TeleOpMode extends LinearOpMode {
             }
         }
 
+        leftIntake.setPower(INTAKE_POWER);
+        rightIntake.setPower(INTAKE_POWER);
+        switchMechanism(mechOption);
+
         while (opModeIsActive()) {
             telemetryAprilTag();
 
@@ -105,6 +129,8 @@ public class TeleOpMode extends LinearOpMode {
             telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
             telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
             telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
+            telemetry.addData("Ramp lift position", rampPitch.getCurrentPosition());
+            telemetry.addData("Ramp lift target", rampPitch.getTargetPosition());
 
             telemetry.update();
 
@@ -113,6 +139,37 @@ public class TeleOpMode extends LinearOpMode {
                 speedCap = 0.5;
             }
 
+            // TODO: TEST THIS
+            if (gamepad1.xWasPressed()) {
+//                rampPitch.setTargetPosition(rampPitch.getTargetPosition() + 10);
+            }
+            if (gamepad1.yWasPressed()) {
+//                rampPitch.setTargetPosition(rampPitch.getTargetPosition() - 10);
+            }
+//            if (shootingArmActive) {
+
+//            } else {
+            if (gamepad1.leftBumperWasPressed()) {
+                if (mechOption == MechOption.INTAKE_MECH) {
+                    mechOption = MechOption.SHOOTING_MECH;
+                } else {
+                    mechOption = MechOption.INTAKE_MECH;
+                }
+                switchMechanism(mechOption);
+            }
+
+//            if (mechOption == MechOption.SHOOTING_MECH) {
+                if (gamepad1.aWasPressed()) {
+                    shootingArmActive = true;
+                    shootingArm.setPosition(SHOOTING_ARM_POS_ACTIVE);
+                } else if (gamepad1.aWasReleased()) {
+                    shootingArmActive = false;
+                    shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
+                }
+//            }
+//            }
+
+
             switch (driveMode) {
                 case FIELD_RELATIVE:
                     driveFieldRelative(
@@ -120,7 +177,7 @@ public class TeleOpMode extends LinearOpMode {
                         gamepad1.left_stick_x * speedCap,
                         gamepad1.right_stick_x * speedCap
                     );
-                    if (gamepad1.a){
+                    if (gamepad1.backWasPressed()){
                         imu.resetYaw();
                     }
                     break;
@@ -131,26 +188,29 @@ public class TeleOpMode extends LinearOpMode {
                             gamepad1.right_stick_x * speedCap
                     );
                     break;
+                default:
+                    throw new RuntimeException("Unreachable code! You need to add a drive mode handler.");
             }
         }
     }
 
     public void switchMechanism(MechOption current) {
-        double power = 1.0;
 
         switch (current){
             case SHOOTING_MECH:
                 leftIntake.setDirection(DcMotorSimple.Direction.FORWARD);
                 rightIntake.setDirection(DcMotorSimple.Direction.FORWARD);
-                rampPitch.setDirection(DcMotorSimple.Direction.REVERSE);
-                rampPitch.setPower(power);
+//                rampPitch.setDirection(DcMotorSimple.Direction.REVERSE);
+//                rampPitch.setPower(power);
                 break;
             case INTAKE_MECH:
                 leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
                 rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
-                rampPitch.setDirection(DcMotorSimple.Direction.FORWARD);
-                rampPitch.setPower(power);
+//                rampPitch.setDirection(DcMotorSimple.Direction.FORWARD);
+//                rampPitch.setPower(power);
                 break;
+            default:
+                throw new RuntimeException("Unreachable! You need to add a switchMechanism handler.");
         }
     }
 
@@ -204,9 +264,9 @@ public class TeleOpMode extends LinearOpMode {
     void initializeIMU() {
         // This needs to be changed to match the orientation on your robot
         RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
-                RevHubOrientationOnRobot.LogoFacingDirection.UP;
+                RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
         RevHubOrientationOnRobot.UsbFacingDirection usbDirection =
-                RevHubOrientationOnRobot.UsbFacingDirection.RIGHT;
+                RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
         RevHubOrientationOnRobot orientationOnRobot = new
                 RevHubOrientationOnRobot(logoDirection, usbDirection);

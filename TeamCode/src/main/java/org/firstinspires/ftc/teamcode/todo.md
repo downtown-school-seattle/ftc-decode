@@ -25,3 +25,7 @@
     - [1] Function to turn by a specific number of degrees
     - [x] Function to move by a field-relative vector in mm.
     - [x] Figure out strategy
+
+## Notes from Skirmish
+
+- fix the measurement on the gobuilda's

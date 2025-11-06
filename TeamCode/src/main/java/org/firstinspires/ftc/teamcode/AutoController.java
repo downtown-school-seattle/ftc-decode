@@ -5,10 +5,12 @@ import android.annotation.SuppressLint;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -20,20 +22,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Auto Controller", group = "team code")
-public class AutoController extends LinearOpMode {
-
-    enum Obelisk {
-        PPG(914.4),
-        PGP(1524),
-        GPP(2133.6);
-
-        public final double patternPickUpLocation;
-
-        Obelisk(double patternPickUpLocation) {
-            this.patternPickUpLocation = patternPickUpLocation;
-        }
-    }
+public abstract class AutoController extends RobotController {
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -54,65 +43,39 @@ public class AutoController extends LinearOpMode {
 
     Obelisk detectedObelisk = Obelisk.PPG;
 
-    DcMotor frontLeftDrive;
-    DcMotor frontRightDrive;
-    DcMotor backLeftDrive;
-    DcMotor backRightDrive;
-    IMU imu;
-    GoBildaPinpointDriver pinpoint;
-
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
+
+    abstract AllianceColor getAllianceColor();
 
     @Override
     public void runOpMode() {
         initAprilTagProcessor();
 
         initRobot();
+        telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
+        telemetry.update();
+
         waitForStart();
 
         goToTarget(0, 0, -Math.toRadians(-15));
         shoot(3);
 
         double xTarget = detectedObelisk.patternPickUpLocation;
+        double yTarget = 254;
+
+        if (getAllianceColor() == AllianceColor.BLUE) {
+            yTarget *= -1;
+        }
+
         goToTarget(xTarget, 0, Math.toRadians(90));
-        goToTarget(xTarget, -254, Math.toRadians(90));
+        goToTarget(xTarget, yTarget, Math.toRadians(90));
         goToTarget(xTarget, 0, Math.toRadians(90));
 
         goToTarget(0, 0, -Math.toRadians(-15));
         shoot(3);
     }
 
-    public void initRobot() {
-        frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
-        frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
-        backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
-        backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
-        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-
-        imu = hardwareMap.get(IMU.class, "imu");
-        initializeIMU();
-
-        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        frontLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        configurePinpoint();
-
-        telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
-        telemetry.addData("stop dist", FORWARD_RAMP_DISTANCE);
-        telemetry.update();
-
-    }
 
     public void shoot(int balls) {
         // TODO: Shooting mechanism.
@@ -215,59 +178,6 @@ public class AutoController extends LinearOpMode {
         frontRightDrive.setPower(maxSpeed * (frontRightPower / maxPower));
         backLeftDrive.setPower(maxSpeed * (backLeftPower / maxPower));
         backRightDrive.setPower(maxSpeed * (backRightPower / maxPower));
-    }
-
-    void initializeIMU() {
-        // This needs to be changed to match the orientation on your robot
-        RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
-                RevHubOrientationOnRobot.LogoFacingDirection.UP;
-        RevHubOrientationOnRobot.UsbFacingDirection usbDirection =
-                RevHubOrientationOnRobot.UsbFacingDirection.RIGHT;
-
-        RevHubOrientationOnRobot orientationOnRobot = new
-                RevHubOrientationOnRobot(logoDirection, usbDirection);
-        imu.initialize(new IMU.Parameters(orientationOnRobot));
-    }
-
-    // Pinpoint is centered on the rotation
-    public void configurePinpoint(){
-        /*
-         *  Set the odometry pod positions relative to the point that you want the position to be measured from.
-         *
-         *  The X pod offset refers to how far sideways from the tracking point the X (forward) odometry pod is.
-         *  Left of the center is a positive number, right of center is a negative number.
-         *
-         *  The Y pod offset refers to how far forwards from the tracking point the Y (strafe) odometry pod is.
-         *  Forward of center is a positive number, backwards is a negative number.
-         */
-        pinpoint.setOffsets(-22.0, -172.0, DistanceUnit.MM);
-
-        /*
-         * Set the kind of pods used by your robot. If you're using goBILDA odometry pods, select either
-         * the goBILDA_SWINGARM_POD, or the goBILDA_4_BAR_POD.
-         * If you're using another kind of odometry pod, uncomment setEncoderResolution and input the
-         * number of ticks per unit of your odometry pod.  For example:
-         *     pinpoint.setEncoderResolution(13.26291192, DistanceUnit.MM);
-         */
-        pinpoint.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-
-        /*
-         * Set the direction that each of the two odometry pods count. The X (forward) pod should
-         * increase when you move the robot forward. And the Y (strafe) pod should increase when
-         * you move the robot to the left.
-         */
-        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
-                GoBildaPinpointDriver.EncoderDirection.FORWARD);
-
-        /*
-         * Before running the robot, recalibrate the IMU. This needs to happen when the robot is stationary
-         * The IMU will automatically calibrate when first powered on, but recalibrating before running
-         * the robot is a good idea to ensure that the calibration is "good".
-         * resetPosAndIMU will reset the position to 0,0,0 and also recalibrate the IMU.
-         * This is recommended before you run your autonomous, as a bad initial calibration can cause
-         * an incorrect starting value for x, y, and heading.
-         */
-        pinpoint.resetPosAndIMU();
     }
 
     public void initAprilTagProcessor() {

@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import android.annotation.SuppressLint;
 
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -19,52 +20,26 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 
 @TeleOp
-public class TeleOpMode extends LinearOpMode {
-    public static final double RAMP_PITCH_POWER = 0.5;
+public class TeleOpMode extends RobotController {
     public static final double RAMP_GEAR_RATIO = 1.0 / 64.0;
-    public static final double SHOOTING_ARM_POS_DORMANT = .8;
-    public static final double SHOOTING_ARM_POS_ACTIVE = .3;
-    public static final double INTAKE_POWER = 0.8;
-    public static final double SHOOT_POWER = 0.8;
+    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
+    public static final double SHOOTING_ARM_POS_ACTIVE = 0.2;
+    public static final double INTAKE_POWER = 0.3;
+    public static final double SHOOT_POWER = 1;
+    public static final double RAMP_MAX = 0;
+    public static final double RAMP_MIN = -44;
+    public static final double RAMP_SPEED = 2;
 
     enum DriveMode {
         FIELD_RELATIVE,
         ROBOT_RELATIVE,
-    }
-
-    public enum MechOption {
-        SHOOTING_MECH,
-        INTAKE_MECH,
-    }
-
-    enum AllianceColor {
-        RED,
-        BLUE
-    }
-
-    enum Obelisk {
-        PPG,
-        PGP,
-        GPP
+        DONT_MOVE
     }
 
     AllianceColor allianceColor = AllianceColor.RED;
     Obelisk obelisk = Obelisk.PPG;
 
     public static double ENCODER_PER_MM = (537.7*19.2)/((104)*Math.PI);
-
-    DcMotor frontLeftDrive;
-    DcMotor frontRightDrive;
-    DcMotor backLeftDrive;
-    DcMotor backRightDrive;
-    DcMotor rampPitch;
-    DcMotor leftIntake;
-    DcMotor rightIntake;
-    Servo shootingArm;
-    IMU imu;
-
-    private boolean shootingArmActive = false;
-    private boolean didSwitchMechWhilstShootingArmActive = false;
 
     DriveMode driveMode = DriveMode.FIELD_RELATIVE;
 
@@ -73,35 +48,13 @@ public class TeleOpMode extends LinearOpMode {
 
     MechOption mechOption = MechOption.INTAKE_MECH;
 
+    double rampPos = 0;
+
     @Override
     public void runOpMode() {
         initAprilTagProcessor();
 
-        frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
-        frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
-        backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
-        backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
-
-        rampPitch = hardwareMap.get(DcMotor.class, "ramp_pitch");
-        leftIntake = hardwareMap.get(DcMotor.class, "left_intake");
-        rightIntake = hardwareMap.get(DcMotor.class, "right_intake");
-        shootingArm = hardwareMap.get(Servo.class, "shooting_arm");
-
-        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-//        rampPitch.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-//        rampPitch.setPower(RAMP_PITCH_POWER);
-        leftIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        imu = hardwareMap.get(IMU.class, "imu");
-        initializeIMU();
-
-        frontRightDrive.setDirection(DcMotorSimple.Direction.REVERSE);
-        backRightDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        initRobot();
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -110,16 +63,18 @@ public class TeleOpMode extends LinearOpMode {
             telemetry.addData("Drive Mode", driveMode.name());
             telemetry.update();
 
-            if (gamepad1.left_bumper) {
+            if (gamepad1.right_bumper && gamepad1.left_bumper && gamepad1.back) {
+                driveMode = DriveMode.DONT_MOVE;
+            } else if (gamepad1.left_bumper) {
                 driveMode = DriveMode.FIELD_RELATIVE;
             } else if (gamepad1.right_bumper) {
                 driveMode = DriveMode.ROBOT_RELATIVE;
             }
         }
 
+        switchMechanism(mechOption);
         leftIntake.setPower(INTAKE_POWER);
         rightIntake.setPower(INTAKE_POWER);
-        switchMechanism(mechOption);
 
         while (opModeIsActive()) {
             telemetryAprilTag();
@@ -127,10 +82,13 @@ public class TeleOpMode extends LinearOpMode {
             telemetry.addData("Status", "Running");
             telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
             telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
+            telemetry.addData("Left spinny", leftIntake.getDirection());
+            telemetry.addData("Right spinny", rightIntake.getDirection());
             telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
             telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
             telemetry.addData("Ramp lift position", rampPitch.getCurrentPosition());
-            telemetry.addData("Ramp lift target", rampPitch.getTargetPosition());
+            telemetry.addData("Ramp lift target", rampPos);
+            telemetry.addData("Shooty target", shootingArm.getPosition());
 
             telemetry.update();
 
@@ -139,16 +97,8 @@ public class TeleOpMode extends LinearOpMode {
                 speedCap = 0.5;
             }
 
-            // TODO: TEST THIS
-            if (gamepad1.xWasPressed()) {
-//                rampPitch.setTargetPosition(rampPitch.getTargetPosition() + 10);
-            }
-            if (gamepad1.yWasPressed()) {
-//                rampPitch.setTargetPosition(rampPitch.getTargetPosition() - 10);
-            }
-//            if (shootingArmActive) {
+            updateRampPitch();
 
-//            } else {
             if (gamepad1.leftBumperWasPressed()) {
                 if (mechOption == MechOption.INTAKE_MECH) {
                     mechOption = MechOption.SHOOTING_MECH;
@@ -158,16 +108,11 @@ public class TeleOpMode extends LinearOpMode {
                 switchMechanism(mechOption);
             }
 
-//            if (mechOption == MechOption.SHOOTING_MECH) {
-                if (gamepad1.aWasPressed()) {
-                    shootingArmActive = true;
-                    shootingArm.setPosition(SHOOTING_ARM_POS_ACTIVE);
-                } else if (gamepad1.aWasReleased()) {
-                    shootingArmActive = false;
-                    shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
-                }
-//            }
-//            }
+            if (gamepad1.rightBumperWasPressed() || gamepad1.aWasPressed()) {
+                shootingArm.setPosition(SHOOTING_ARM_POS_ACTIVE);
+            } else if (gamepad1.rightBumperWasReleased() || gamepad1.aWasReleased()) {
+                shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
+            }
 
 
             switch (driveMode) {
@@ -188,30 +133,45 @@ public class TeleOpMode extends LinearOpMode {
                             gamepad1.right_stick_x * speedCap
                     );
                     break;
+                case DONT_MOVE:
+                    // Dont move :)
+                    break;
                 default:
                     throw new RuntimeException("Unreachable code! You need to add a drive mode handler.");
             }
         }
     }
 
-    public void switchMechanism(MechOption current) {
+    public void updateRampPitch() {
+        rampPos += (int) gamepad1.right_stick_y * RAMP_SPEED;
+        rampPos = Math.max(Math.min(rampPos, RAMP_MAX), RAMP_MIN);
 
+        rampPitch.setTargetPosition((int) rampPos);
+    }
+
+    public void switchMechanism(MechOption current) {
+        double power;
         switch (current){
             case SHOOTING_MECH:
-                leftIntake.setDirection(DcMotorSimple.Direction.FORWARD);
+                leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
                 rightIntake.setDirection(DcMotorSimple.Direction.FORWARD);
 //                rampPitch.setDirection(DcMotorSimple.Direction.REVERSE);
 //                rampPitch.setPower(power);
+                power = SHOOT_POWER;
                 break;
             case INTAKE_MECH:
-                leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+                leftIntake.setDirection(DcMotorSimple.Direction.FORWARD);
                 rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
 //                rampPitch.setDirection(DcMotorSimple.Direction.FORWARD);
 //                rampPitch.setPower(power);
+                power = INTAKE_POWER;
                 break;
             default:
                 throw new RuntimeException("Unreachable! You need to add a switchMechanism handler.");
         }
+
+        leftIntake.setPower(power);
+        rightIntake.setPower(power);
     }
 
     // This routine drives the robot field relative
@@ -222,7 +182,7 @@ public class TeleOpMode extends LinearOpMode {
 
         // Second, rotate angle by the angle the robot is pointing
         theta = AngleUnit.normalizeRadians(theta -
-                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+                pinpoint.getHeading(AngleUnit.RADIANS));
 
         // Third, convert back to cartesian
         double newForward = r * Math.sin(theta);

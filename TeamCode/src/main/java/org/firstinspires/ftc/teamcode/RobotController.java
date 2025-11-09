@@ -67,7 +67,8 @@ abstract public class RobotController extends LinearOpMode {
         backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        rampPitch.setTargetPosition(28);
+        rampPitch.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rampPitch.setTargetPosition(0);
         rampPitch.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rampPitch.setPower(RAMP_PITCH_POWER);
 

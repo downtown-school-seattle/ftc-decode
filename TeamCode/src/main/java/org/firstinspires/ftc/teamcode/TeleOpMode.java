@@ -27,6 +27,7 @@ public class TeleOpMode extends RobotController {
     public static final double RAMP_MIN = -2800;
     public static final double RAMP_MAX = 0;
     public static final double RAMP_SPEED = 24;
+    public static final double DEADZONE = 0.5;
 
     enum DriveMode {
         FIELD_RELATIVE,
@@ -93,7 +94,7 @@ public class TeleOpMode extends RobotController {
             telemetry.update();
 
             double speedCap = 1;
-            if (gamepad1.b) {
+            if (gamepad1.left_trigger > 0.5) {
                 speedCap = 0.5;
             }
 
@@ -120,7 +121,7 @@ public class TeleOpMode extends RobotController {
                     driveFieldRelative(
                         -gamepad1.left_stick_y * speedCap,
                         gamepad1.left_stick_x * speedCap,
-                        gamepad1.right_stick_x * speedCap
+                        deadzone(gamepad1.right_stick_x) * speedCap
                     );
                     if (gamepad1.backWasPressed()){
                         pinpoint.resetPosAndIMU();
@@ -130,7 +131,7 @@ public class TeleOpMode extends RobotController {
                     drive(
                             -gamepad1.left_stick_y * speedCap,
                             gamepad1.left_stick_x * speedCap,
-                            gamepad1.right_stick_x * speedCap
+                            deadzone(gamepad1.right_stick_x) * speedCap
                     );
                     break;
                 case DONT_MOVE:
@@ -142,8 +143,16 @@ public class TeleOpMode extends RobotController {
         }
     }
 
+    public double deadzone(double in) {
+        if (Math.abs(in) < DEADZONE) {
+            return 0;
+        } else {
+            return in;
+        }
+    }
+
     public void updateRampPitch() {
-        rampPos += (int) gamepad1.right_stick_y * RAMP_SPEED;
+        rampPos += (int) (deadzone(gamepad1.right_stick_y) * RAMP_SPEED);
 
         if (!gamepad1.x) {
             rampPos = Math.max(Math.min(rampPos, RAMP_MAX), RAMP_MIN);

@@ -67,7 +67,7 @@ public abstract class AutoController extends RobotController {
         sleep(waitTime);
 
         moveForward(500);
-        turnTo(45);
+//        turnTo(45);
 
         stopDrive();
 
@@ -121,18 +121,17 @@ public abstract class AutoController extends RobotController {
     }
 
     public void moveForward(double xTarget) {
-        xTarget += pinpoint.getPosX(DistanceUnit.MM);
-
         double xDistance;
         do {
-            xDistance = Math.abs(xTarget - pinpoint.getPosX(DistanceUnit.MM));
+            xDistance = xTarget - pinpoint.getPosX(DistanceUnit.MM);
             drive(powerModulate(xDistance, FORWARD_POWER_RAMP), 0, 0);
-        } while (xDistance > BRAKE_THRESHOLD);
+        } while (Math.abs(xDistance) > BRAKE_THRESHOLD);
     }
 
     public void turnTo(double rotTarget) {
         double rotDistance;
         do {
+            pinpoint.update();
             rotDistance = Math.abs(rotTarget - imu.getRobotYawPitchRollAngles().getYaw());
             drive(0, 0, powerModulate(rotDistance, ROTATION_POWER_RAMP));
         } while (rotDistance > ROTATE_THRESHOLD);

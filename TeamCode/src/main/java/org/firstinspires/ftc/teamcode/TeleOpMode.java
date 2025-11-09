@@ -21,14 +21,12 @@ import java.util.List;
 
 @TeleOp
 public class TeleOpMode extends RobotController {
-    public static final double RAMP_GEAR_RATIO = 1.0 / 64.0;
-    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
-    public static final double SHOOTING_ARM_POS_ACTIVE = 0.2;
-    public static final double INTAKE_POWER = 0.3;
+    public static final double RAMP_GEAR_RATIO = 1.0 / 75.0;
+    public static final double INTAKE_POWER = 0.4;
     public static final double SHOOT_POWER = 1;
+    public static final double RAMP_MIN = -2800;
     public static final double RAMP_MAX = 0;
-    public static final double RAMP_MIN = -44;
-    public static final double RAMP_SPEED = 2;
+    public static final double RAMP_SPEED = 24;
 
     enum DriveMode {
         FIELD_RELATIVE,
@@ -41,7 +39,7 @@ public class TeleOpMode extends RobotController {
 
     public static double ENCODER_PER_MM = (537.7*19.2)/((104)*Math.PI);
 
-    DriveMode driveMode = DriveMode.FIELD_RELATIVE;
+    DriveMode driveMode = DriveMode.ROBOT_RELATIVE;
 
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
@@ -78,8 +76,10 @@ public class TeleOpMode extends RobotController {
 
         while (opModeIsActive()) {
             telemetryAprilTag();
+            pinpoint.update();
 
             telemetry.addData("Status", "Running");
+            telemetry.addData("Heading", pinpoint.getHeading(AngleUnit.DEGREES));
             telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
             telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
             telemetry.addData("Left spinny", leftIntake.getDirection());
@@ -123,7 +123,7 @@ public class TeleOpMode extends RobotController {
                         gamepad1.right_stick_x * speedCap
                     );
                     if (gamepad1.backWasPressed()){
-                        imu.resetYaw();
+                        pinpoint.resetPosAndIMU();
                     }
                     break;
                 case ROBOT_RELATIVE:
@@ -144,7 +144,15 @@ public class TeleOpMode extends RobotController {
 
     public void updateRampPitch() {
         rampPos += (int) gamepad1.right_stick_y * RAMP_SPEED;
-        rampPos = Math.max(Math.min(rampPos, RAMP_MAX), RAMP_MIN);
+
+        if (!gamepad1.x) {
+            rampPos = Math.max(Math.min(rampPos, RAMP_MAX), RAMP_MIN);
+            if (gamepad1.xWasReleased()) {
+                rampPitch.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                rampPitch.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
+        }
+
 
         rampPitch.setTargetPosition((int) rampPos);
     }
@@ -153,15 +161,15 @@ public class TeleOpMode extends RobotController {
         double power;
         switch (current){
             case SHOOTING_MECH:
-                leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
-                rightIntake.setDirection(DcMotorSimple.Direction.FORWARD);
+                leftIntake.setDirection(DcMotorSimple.Direction.FORWARD);
+                rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
 //                rampPitch.setDirection(DcMotorSimple.Direction.REVERSE);
 //                rampPitch.setPower(power);
                 power = SHOOT_POWER;
                 break;
             case INTAKE_MECH:
-                leftIntake.setDirection(DcMotorSimple.Direction.FORWARD);
-                rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+                leftIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+                rightIntake.setDirection(DcMotorSimple.Direction.FORWARD);
 //                rampPitch.setDirection(DcMotorSimple.Direction.FORWARD);
 //                rampPitch.setPower(power);
                 power = INTAKE_POWER;

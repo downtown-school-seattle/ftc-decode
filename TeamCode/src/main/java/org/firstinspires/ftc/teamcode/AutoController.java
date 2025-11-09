@@ -2,16 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import android.annotation.SuppressLint;
 
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.hardware.Servo;
-
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -33,9 +23,9 @@ public abstract class AutoController extends RobotController {
     static final double BRAKE_THRESHOLD = 10;
     static final double ROTATE_THRESHOLD = Math.toRadians(5);
     // Distance in mm it takes the robot to stop
-    static final double FORWARD_RAMP_DISTANCE = 600;
+    static final double FORWARD_POWER_RAMP = 200;
     // Distance in radians it takes the robot to stop
-    static final double TURN_RAMP_DISTANCE = Math.toRadians(20);
+    static final double ROTATION_POWER_RAMP = Math.toRadians(20);
 
 
 //    double xwidth = 440;
@@ -58,22 +48,26 @@ public abstract class AutoController extends RobotController {
 
         waitForStart();
 
-        goToTarget(0, 0, -Math.toRadians(-15));
-        shoot(3);
+        moveForward(500);
+        turnTo(45);
 
-        double xTarget = detectedObelisk.patternPickUpLocation;
-        double yTarget = 254;
+        stopDrive();
 
-        if (getAllianceColor() == AllianceColor.BLUE) {
-            yTarget *= -1;
-        }
-
-        goToTarget(xTarget, 0, Math.toRadians(90));
-        goToTarget(xTarget, yTarget, Math.toRadians(90));
-        goToTarget(xTarget, 0, Math.toRadians(90));
-
-        goToTarget(0, 0, -Math.toRadians(-15));
-        shoot(3);
+//        shoot(3);
+//
+//        double xTarget = detectedObelisk.patternPickUpLocation;
+//        double yTarget = 254;
+//
+//        if (getAllianceColor() == AllianceColor.BLUE) {
+//            yTarget *= -1;
+//        }
+//
+//        goToTarget(xTarget, 0, Math.toRadians(90));
+//        goToTarget(xTarget, yTarget, Math.toRadians(90));
+//        goToTarget(xTarget, 0, Math.toRadians(90));
+//
+//        goToTarget(0, 0, -Math.toRadians(-15));
+//        shoot(3);
     }
 
 
@@ -82,9 +76,27 @@ public abstract class AutoController extends RobotController {
         sleep(1000L * balls);
     }
 
+    public void moveForward(double xTarget) {
+        xTarget += pinpoint.getPosX(DistanceUnit.MM);
+
+        double xDistance;
+        do {
+            xDistance = Math.abs(xTarget - pinpoint.getPosX(DistanceUnit.MM));
+            drive(powerModulate(xDistance, FORWARD_POWER_RAMP), 0, 0);
+        } while (xDistance > BRAKE_THRESHOLD);
+    }
+
+    public void turnTo(double rotTarget) {
+        double rotDistance;
+        do {
+            rotDistance = Math.abs(rotTarget - imu.getRobotYawPitchRollAngles().getYaw());
+            drive(0, 0, powerModulate(rotDistance, ROTATION_POWER_RAMP));
+        } while (rotDistance > ROTATE_THRESHOLD);
+    }
+
     public void goToTarget(double xTarget, double yTarget, double rotTarget) {
         double xDistance;
-        double yDistance;
+        double yDistance = 0;
         double rotDistance;
 
         do {
@@ -92,7 +104,7 @@ public abstract class AutoController extends RobotController {
             Pose2D pose = pinpoint.getPosition();
 
             xDistance = xTarget - pose.getX(DistanceUnit.MM);
-            yDistance = yTarget - pose.getY(DistanceUnit.MM);
+//            yDistance = yTarget - pose.getY(DistanceUnit.MM); // The y-pod is not working.
             rotDistance = AngleUnit.normalizeRadians(rotTarget - pose.getHeading(AngleUnit.RADIANS));
 
             telemetry.addData("x pos", pose.getX(DistanceUnit.MM));
@@ -101,7 +113,6 @@ public abstract class AutoController extends RobotController {
             telemetry.addData("X dist", xDistance);
             telemetry.addData("Y dist", yDistance);
             telemetry.addData("rot dist", rotDistance);
-            telemetry.update();
 
             if (Math.abs(xDistance) < BRAKE_THRESHOLD) {
                 xDistance = 0;
@@ -117,17 +128,20 @@ public abstract class AutoController extends RobotController {
                 telemetry.addLine("stopping");
             } else {
                 driveFieldRelative(
-                        powerModulate(xDistance, FORWARD_RAMP_DISTANCE),
+                        powerModulate(xDistance, FORWARD_POWER_RAMP),
 //                    Math.signum(xDistance) * 0.3,
-                        powerModulate(-yDistance, FORWARD_RAMP_DISTANCE), // GoBuilda uses an inverted y-axis.
+//                        powerModulate(-yDistance, FORWARD_RAMP_DISTANCE), // GoBuilda uses an inverted y-axis.
+                        0, // The y pod is not working.
 //                    Math.signum(yDistance) * -0.3,
-                        powerModulate(-rotDistance, TURN_RAMP_DISTANCE), // Drive function expects CW
+                        powerModulate(-rotDistance, ROTATION_POWER_RAMP), // Drive function expects CW
 //                    Math.signum(-rotDistance),
 //                    0,
                         pose
                 );
             }
-        } while (opModeIsActive() && xDistance != 0 && yDistance != 0 && rotDistance != 0);
+
+            telemetry.update();
+        } while (opModeIsActive() && (xDistance != 0 || yDistance != 0 || rotDistance != 0));
     }
 
     private double powerModulate(double distance, double stopDistance) {
@@ -178,6 +192,13 @@ public abstract class AutoController extends RobotController {
         frontRightDrive.setPower(maxSpeed * (frontRightPower / maxPower));
         backLeftDrive.setPower(maxSpeed * (backLeftPower / maxPower));
         backRightDrive.setPower(maxSpeed * (backRightPower / maxPower));
+    }
+
+    public void stopDrive() {
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
     }
 
     public void initAprilTagProcessor() {

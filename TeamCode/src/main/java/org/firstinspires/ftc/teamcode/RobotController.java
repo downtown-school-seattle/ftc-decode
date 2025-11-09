@@ -12,6 +12,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 abstract public class RobotController extends LinearOpMode {
     public static final double RAMP_PITCH_POWER = 1;
+    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
+    public static final double SHOOTING_ARM_POS_ACTIVE = 0.2;
 
     enum Obelisk {
         PPG(914.4),
@@ -65,12 +67,14 @@ abstract public class RobotController extends LinearOpMode {
         backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        rampPitch.setTargetPosition(0);
+        rampPitch.setTargetPosition(28);
         rampPitch.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rampPitch.setPower(RAMP_PITCH_POWER);
 
         leftIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
 
         imu = hardwareMap.get(IMU.class, "imu");
         initializeIMU();

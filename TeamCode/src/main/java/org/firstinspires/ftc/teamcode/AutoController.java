@@ -90,7 +90,6 @@ public abstract class AutoController extends RobotController {
 
 
     public void shoot(int balls) {
-        // TODO: Shooting mechanism.
         rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
         sleep(1000);
         leftIntake.setPower(1);

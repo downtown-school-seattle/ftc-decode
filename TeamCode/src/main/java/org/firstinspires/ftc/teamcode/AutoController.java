@@ -14,6 +14,15 @@ import java.util.List;
 
 public abstract class AutoController extends RobotController {
 
+
+    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_3 = 0.2;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.4;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.6;
+
+    public static final int LAUNCH_BALL_PITCH = 150;
+
+
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
     // % of full rotation per second
@@ -82,7 +91,34 @@ public abstract class AutoController extends RobotController {
 
     public void shoot(int balls) {
         // TODO: Shooting mechanism.
-        sleep(1000L * balls);
+        rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
+        sleep(1000);
+        leftIntake.setPower(1);
+        rightIntake.setPower(1);
+        int i = 0;
+        while(true){
+            // main loop
+
+
+            sleep(500);
+            double shootingArmPos;
+            if (i==0){
+                shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_1;
+            } else if (i==1) {
+                shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_2;
+            } else {
+                shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_3;
+            }
+
+            shootingArm.setPosition(shootingArmPos);
+
+            i++;
+            if (i >= balls){
+                sleep(500);
+                break;
+            }
+        }
+        shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
     }
 
     public void moveForward(double xTarget) {

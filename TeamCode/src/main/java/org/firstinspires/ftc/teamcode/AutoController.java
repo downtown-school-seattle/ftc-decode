@@ -36,6 +36,8 @@ public abstract class AutoController extends RobotController {
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
 
+    long waitTime;
+
     abstract AllianceColor getAllianceColor();
 
     @Override
@@ -46,7 +48,14 @@ public abstract class AutoController extends RobotController {
         telemetry.addLine("Make sure to rotate the robot to face the wall with the goals on them.");
         telemetry.update();
 
-        waitForStart();
+        while (!this.isStarted()) {
+            telemetry.addLine("Delay for " + waitTime + "ms (L Stick to change)");
+            telemetry.update();
+
+            waitTime += (long) Math.floor(gamepad1.left_stick_y * 10);
+        }
+
+        sleep(waitTime);
 
         moveForward(500);
         turnTo(45);

@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 abstract public class RobotController extends LinearOpMode {
     public static final double RAMP_PITCH_POWER = 1;
-    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
+    public static final double SHOOTING_ARM_POS_DORMANT = 0.75;
     public static final double SHOOTING_ARM_POS_ACTIVE = 0.2;
 
     enum Obelisk {

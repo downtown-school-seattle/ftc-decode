@@ -48,6 +48,7 @@ public class TeleOpMode extends RobotController {
     MechOption mechOption = MechOption.INTAKE_MECH;
 
     double rampPos = 0;
+    double switchMechanismTimer = 0;
 
     @Override
     public void runOpMode() {
@@ -75,7 +76,9 @@ public class TeleOpMode extends RobotController {
         leftIntake.setPower(INTAKE_POWER);
         rightIntake.setPower(INTAKE_POWER);
 
+        double deltaTime = 0;
         while (opModeIsActive()) {
+            long startTime = System.currentTimeMillis();
             telemetryAprilTag();
             pinpoint.update();
 
@@ -93,20 +96,21 @@ public class TeleOpMode extends RobotController {
 
             telemetry.update();
 
-            double speedCap = 1;
-            if (gamepad1.left_trigger > 0.5) {
-                speedCap = 0.5;
-            }
+            double speedCap = 1 - gamepad1.left_trigger * 0.8;
 
-            updateRampPitch();
+            updateRampPitch(deltaTime);
 
             if (gamepad1.leftBumperWasPressed()) {
                 if (mechOption == MechOption.INTAKE_MECH) {
+                    switchMechanismTimer = 1;
+                    rampPos = RAMP_MIN;
                     mechOption = MechOption.SHOOTING_MECH;
                 } else {
+                    switchMechanismTimer = 0;
+                    rampPos = RAMP_MAX;
                     mechOption = MechOption.INTAKE_MECH;
+                    switchMechanism(mechOption);
                 }
-                switchMechanism(mechOption);
             }
 
             if (gamepad1.rightBumperWasPressed() || gamepad1.aWasPressed()) {
@@ -140,6 +144,9 @@ public class TeleOpMode extends RobotController {
                 default:
                     throw new RuntimeException("Unreachable code! You need to add a drive mode handler.");
             }
+
+            long endTime = System.currentTimeMillis();
+            deltaTime = (float) (endTime - startTime) / 1000;
         }
     }
 
@@ -151,7 +158,14 @@ public class TeleOpMode extends RobotController {
         }
     }
 
-    public void updateRampPitch() {
+    public void updateRampPitch(double deltaTime) {
+        if (switchMechanismTimer > 0) {
+            switchMechanismTimer -= deltaTime;
+            if (switchMechanismTimer <= 0) {
+                switchMechanism(mechOption);
+            }
+        }
+
         rampPos += (int) (deadzone(gamepad1.right_stick_y) * RAMP_SPEED);
 
         if (!gamepad1.x) {

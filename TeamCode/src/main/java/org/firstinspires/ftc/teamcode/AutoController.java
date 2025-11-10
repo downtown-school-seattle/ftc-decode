@@ -13,14 +13,11 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 
 public abstract class AutoController extends RobotController {
-
-
-    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
     public static final double SHOOTING_ARM_LAUNCH_BALL_3 = 0.2;
-    public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.4;
-    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.6;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.2;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.4;
 
-    public static final int LAUNCH_BALL_PITCH = 150;
+    public static final int LAUNCH_BALL_PITCH = -2800;
 
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
@@ -32,9 +29,9 @@ public abstract class AutoController extends RobotController {
     static final double BRAKE_THRESHOLD = 10;
     static final double ROTATE_THRESHOLD = Math.toRadians(5);
     // Distance in mm it takes the robot to stop
-    static final double FORWARD_POWER_RAMP = 200;
+    static final double FORWARD_POWER_RAMP = 800;
     // Distance in radians it takes the robot to stop
-    static final double ROTATION_POWER_RAMP = Math.toRadians(20);
+    static final double ROTATION_POWER_RAMP = Math.toRadians(40);
 
 
 //    double xwidth = 440;
@@ -66,10 +63,20 @@ public abstract class AutoController extends RobotController {
 
         sleep(waitTime);
 
-        moveForward(500);
-//        turnTo(45);
-
-        stopDrive();
+//        moveForward(-1400);
+        moveForward(400);
+//        stopDrive();
+//
+//        shoot(2);
+//
+//        if (getAllianceColor() == AllianceColor.BLUE) {
+//            turnTo(Math.toRadians(-45));
+//        } else {
+//            turnTo(Math.toRadians(45));
+//        }
+//
+//        moveForward(500);
+//        stopDrive();
 
 //        shoot(3);
 //
@@ -90,16 +97,20 @@ public abstract class AutoController extends RobotController {
 
 
     public void shoot(int balls) {
+        if (balls > 3) throw new Error("The robot can't hold more than 3 balls.");
+
         rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
-        sleep(1000);
+        sleep(3000);
         leftIntake.setPower(1);
-        rightIntake.setPower(1);
+        rightIntake.setPower(-1);
+        sleep(1000);
+
         int i = 0;
-        while(true){
+        while(true) {
             // main loop
 
 
-            sleep(500);
+            sleep(1000);
             double shootingArmPos;
             if (i==0){
                 shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_1;
@@ -113,7 +124,7 @@ public abstract class AutoController extends RobotController {
 
             i++;
             if (i >= balls){
-                sleep(500);
+                sleep(1000);
                 break;
             }
         }
@@ -121,20 +132,32 @@ public abstract class AutoController extends RobotController {
     }
 
     public void moveForward(double xTarget) {
+        pinpoint.update();
+        xTarget += pinpoint.getPosX(DistanceUnit.MM);
+
         double xDistance;
         do {
+            pinpoint.update();
             xDistance = xTarget - pinpoint.getPosX(DistanceUnit.MM);
+            telemetry.addData("x position", pinpoint.getPosX(DistanceUnit.MM));
+            telemetry.addData("x distance", xDistance);
+            telemetry.update();
+
             drive(powerModulate(xDistance, FORWARD_POWER_RAMP), 0, 0);
         } while (Math.abs(xDistance) > BRAKE_THRESHOLD);
     }
 
     public void turnTo(double rotTarget) {
+        rotTarget += imu.getRobotYawPitchRollAngles().getYaw();
         double rotDistance;
         do {
             pinpoint.update();
-            rotDistance = Math.abs(rotTarget - imu.getRobotYawPitchRollAngles().getYaw());
+            rotDistance = AngleUnit.normalizeRadians(rotTarget - imu.getRobotYawPitchRollAngles().getYaw());
+            telemetry.addData("turn distance", rotDistance);
+            telemetry.update();
+
             drive(0, 0, powerModulate(rotDistance, ROTATION_POWER_RAMP));
-        } while (rotDistance > ROTATE_THRESHOLD);
+        } while (Math.abs(rotDistance) > ROTATE_THRESHOLD);
     }
 
     public void goToTarget(double xTarget, double yTarget, double rotTarget) {

@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -28,6 +29,12 @@ public class TeleOpMode extends RobotController {
     public static final double RAMP_MAX = 0;
     public static final double RAMP_SPEED = 24;
     public static final double DEADZONE = 0.5;
+
+    final double TURN_GAIN   =  0.01  ;   //  Turn Control "Gain".  e.g. Ramp up to 25% power at a 25 degree error. (0.25 / 25.0)
+    final double MAX_AUTO_TURN  = 0.5;   //  Clip the turn speed to this max value (adjust for your robot)
+    private AprilTagDetection desiredTag = null;         // Used for managing the AprilTag detection process.
+    private static final int DESIRED_TAG_ID = -1;     // Choose the tag you want to approach or set to -1 for ANY tag.
+
 
     enum DriveMode {
         FIELD_RELATIVE,
@@ -48,6 +55,7 @@ public class TeleOpMode extends RobotController {
     MechOption mechOption = MechOption.INTAKE_MECH;
 
     double rampPos = 0;
+
 
     @Override
     public void runOpMode() {
@@ -74,6 +82,7 @@ public class TeleOpMode extends RobotController {
         switchMechanism(mechOption);
         leftIntake.setPower(INTAKE_POWER);
         rightIntake.setPower(INTAKE_POWER);
+        boolean targetFound = false;
 
         while (opModeIsActive()) {
             telemetryAprilTag();
@@ -97,6 +106,29 @@ public class TeleOpMode extends RobotController {
             if (gamepad1.left_trigger > 0.5) {
                 speedCap = 0.5;
             }
+            targetFound = false;
+            desiredTag  = null;
+
+            // Step through the list of detected tags and look for a matching tag
+            List<AprilTagDetection> currentDetections = aprilTagProcessor.getDetections();
+            for (AprilTagDetection detection : currentDetections) {
+                // Look to see if we have size info on this tag.
+                if (detection.metadata != null) {
+                    //  Check to see if we want to track towards this tag.
+                    if ((DESIRED_TAG_ID < 0) || (detection.id == DESIRED_TAG_ID)) {
+                        // Yes, we want to use this tag.
+                        targetFound = true;
+                        desiredTag = detection;
+                        break;  // don't look any further.
+                    } else {
+                        // This tag is in the library, but we do not want to track it right now.
+                        telemetry.addData("Skipping", "Tag ID %d is not desired", detection.id);
+                    }
+                } else {
+                    // This tag is NOT in the library, so we don't have enough information to track to it.
+                    telemetry.addData("Unknown", "Tag ID %d is not in TagLibrary", detection.id);
+                }
+            }
 
             updateRampPitch();
 
@@ -115,13 +147,17 @@ public class TeleOpMode extends RobotController {
                 shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
             }
 
-
+            double rotate = deadzone(gamepad1.right_stick_x) * speedCap;
+            if (gamepad1.right_trigger > 0.2 && targetFound){
+                double  headingError    = desiredTag.ftcPose.bearing;
+                rotate   = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN) ;
+            }
             switch (driveMode) {
                 case FIELD_RELATIVE:
                     driveFieldRelative(
-                        -gamepad1.left_stick_y * speedCap,
-                        gamepad1.left_stick_x * speedCap,
-                        deadzone(gamepad1.right_stick_x) * speedCap
+                            -gamepad1.left_stick_y * speedCap,
+                            gamepad1.left_stick_x * speedCap,
+                            rotate
                     );
                     if (gamepad1.backWasPressed()){
                         pinpoint.resetPosAndIMU();

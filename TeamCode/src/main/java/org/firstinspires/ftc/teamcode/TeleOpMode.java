@@ -48,6 +48,7 @@ public class TeleOpMode extends RobotController {
     MechOption mechOption = MechOption.INTAKE_MECH;
 
     double rampPos = 0;
+    double switchMechanismTimer = 0;
 
     @Override
     public void runOpMode() {
@@ -75,71 +76,84 @@ public class TeleOpMode extends RobotController {
         leftIntake.setPower(INTAKE_POWER);
         rightIntake.setPower(INTAKE_POWER);
 
+        mainLoop();
+    }
+
+    public void mainLoop() {
+        double deltaTime = 0;
         while (opModeIsActive()) {
-            telemetryAprilTag();
-            pinpoint.update();
+            long startTime = System.currentTimeMillis();
+            controller(deltaTime);
+            long endTime = System.currentTimeMillis();
+            deltaTime = (float) (endTime - startTime) / 1000;
+        }
+    }
 
-            telemetry.addData("Status", "Running");
-            telemetry.addData("Heading", pinpoint.getHeading(AngleUnit.DEGREES));
-            telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
-            telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
-            telemetry.addData("Left spinny", leftIntake.getDirection());
-            telemetry.addData("Right spinny", rightIntake.getDirection());
-            telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
-            telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
-            telemetry.addData("Ramp lift position", rampPitch.getCurrentPosition());
-            telemetry.addData("Ramp lift target", rampPos);
-            telemetry.addData("Shooty target", shootingArm.getPosition());
+    public void controller(double deltaTime) {
+        telemetryAprilTag();
+        pinpoint.update();
 
-            telemetry.update();
+        telemetry.addData("Status", "Running");
+        telemetry.addData("Heading", pinpoint.getHeading(AngleUnit.DEGREES));
+        telemetry.addData("Front left position", frontLeftDrive.getCurrentPosition());
+        telemetry.addData("Front right position", frontRightDrive.getCurrentPosition());
+        telemetry.addData("Left spinny", leftIntake.getDirection());
+        telemetry.addData("Right spinny", rightIntake.getDirection());
+        telemetry.addData("Back left position", backLeftDrive.getCurrentPosition());
+        telemetry.addData("Back right position", backRightDrive.getCurrentPosition());
+        telemetry.addData("Ramp lift position", rampPitch.getCurrentPosition());
+        telemetry.addData("Ramp lift target", rampPos);
+        telemetry.addData("Shooty target", shootingArm.getPosition());
 
-            double speedCap = 1;
-            if (gamepad1.left_trigger > 0.5) {
-                speedCap = 0.5;
-            }
+        telemetry.update();
 
-            updateRampPitch();
+        double speedCap = 1 - gamepad1.left_trigger * 0.8;
 
-            if (gamepad1.leftBumperWasPressed()) {
-                if (mechOption == MechOption.INTAKE_MECH) {
-                    mechOption = MechOption.SHOOTING_MECH;
-                } else {
-                    mechOption = MechOption.INTAKE_MECH;
-                }
+        updateRampPitch(deltaTime);
+
+        if (gamepad1.leftBumperWasPressed()) {
+            if (mechOption == MechOption.INTAKE_MECH) {
+                switchMechanismTimer = 1;
+                rampPos = RAMP_MIN;
+                mechOption = MechOption.SHOOTING_MECH;
+            } else {
+                switchMechanismTimer = 0;
+                rampPos = RAMP_MAX;
+                mechOption = MechOption.INTAKE_MECH;
                 switchMechanism(mechOption);
             }
+        }
 
-            if (gamepad1.rightBumperWasPressed() || gamepad1.aWasPressed()) {
-                shootingArm.setPosition(SHOOTING_ARM_POS_ACTIVE);
-            } else if (gamepad1.rightBumperWasReleased() || gamepad1.aWasReleased()) {
-                shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
-            }
+        if (gamepad1.rightBumperWasPressed() || gamepad1.aWasPressed()) {
+            shootingArm.setPosition(SHOOTING_ARM_POS_ACTIVE);
+        } else if (gamepad1.rightBumperWasReleased() || gamepad1.aWasReleased()) {
+            shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
+        }
 
 
-            switch (driveMode) {
-                case FIELD_RELATIVE:
-                    driveFieldRelative(
-                            -gamepad1.left_stick_y * speedCap,
-                            gamepad1.left_stick_x * speedCap,
-                            deadzone(gamepad1.right_stick_x) * speedCap
-                    );
-                    if (gamepad1.backWasPressed()){
-                        pinpoint.resetPosAndIMU();
-                    }
-                    break;
-                case ROBOT_RELATIVE:
-                    drive(
-                            -gamepad1.left_stick_y * speedCap,
-                            gamepad1.left_stick_x * speedCap,
-                            deadzone(gamepad1.right_stick_x) * speedCap
-                    );
-                    break;
-                case DONT_MOVE:
-                    // Dont move :)
-                    break;
-                default:
-                    throw new RuntimeException("Unreachable code! You need to add a drive mode handler.");
-            }
+        switch (driveMode) {
+            case FIELD_RELATIVE:
+                driveFieldRelative(
+                        -gamepad1.left_stick_y * speedCap,
+                        gamepad1.left_stick_x * speedCap,
+                        deadzone(gamepad1.right_stick_x) * speedCap
+                );
+                if (gamepad1.backWasPressed()){
+                    pinpoint.resetPosAndIMU();
+                }
+                break;
+            case ROBOT_RELATIVE:
+                drive(
+                        -gamepad1.left_stick_y * speedCap,
+                        gamepad1.left_stick_x * speedCap,
+                        deadzone(gamepad1.right_stick_x) * speedCap
+                );
+                break;
+            case DONT_MOVE:
+                // Dont move :)
+                break;
+            default:
+                throw new RuntimeException("Unreachable code! You need to add a drive mode handler.");
         }
     }
 
@@ -151,7 +165,14 @@ public class TeleOpMode extends RobotController {
         }
     }
 
-    public void updateRampPitch() {
+    public void updateRampPitch(double deltaTime) {
+        if (switchMechanismTimer > 0) {
+            switchMechanismTimer -= deltaTime;
+            if (switchMechanismTimer <= 0) {
+                switchMechanism(mechOption);
+            }
+        }
+
         rampPos += (int) (deadzone(gamepad1.right_stick_y) * RAMP_SPEED);
 
         if (!gamepad1.x) {

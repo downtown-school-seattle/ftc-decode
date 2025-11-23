@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.auto;
 
 import android.annotation.SuppressLint;
 
@@ -6,6 +6,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.RobotController;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -13,12 +14,10 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 
 public abstract class AutoController extends RobotController {
-    public static final double SHOOTING_ARM_LAUNCH_BALL_3 = 0.2;
-    public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.2;
-    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.4;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.4;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.6;
 
-    public static final int LAUNCH_BALL_PITCH = -2800;
-
+    public static final int LAUNCH_BALL_PITCH = -1300;
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -29,9 +28,11 @@ public abstract class AutoController extends RobotController {
     static final double BRAKE_THRESHOLD = 10;
     static final double ROTATE_THRESHOLD = Math.toRadians(5);
     // Distance in mm it takes the robot to stop
-    static final double FORWARD_POWER_RAMP = 800;
+    static final double FORWARD_POWER_RAMP = 400;
     // Distance in radians it takes the robot to stop
     static final double ROTATION_POWER_RAMP = Math.toRadians(40);
+    // Minimum power given to the robot.
+    static final double MIN_POWER = 0.2;
 
 
 //    double xwidth = 440;
@@ -55,69 +56,69 @@ public abstract class AutoController extends RobotController {
         telemetry.update();
 
         while (!this.isStarted()) {
-            telemetry.addLine("Delay for " + waitTime + "ms (L Stick to change)");
+            telemetry.addLine("Delay for " + waitTime + "ms (Bumpers to change)");
             telemetry.update();
 
-            waitTime += (long) Math.floor(gamepad1.left_stick_y * 10);
+            if (gamepad1.leftBumperWasPressed()) waitTime += 100;
+            else if (gamepad1.rightBumperWasPressed()) waitTime -= 100;
         }
+
+//        goToTarget(500, 0, 90);
 
         sleep(waitTime);
 
-//        moveForward(-1400);
-        moveForward(400);
-//        stopDrive();
-//
-//        shoot(2);
-//
-//        if (getAllianceColor() == AllianceColor.BLUE) {
-//            turnTo(Math.toRadians(-45));
-//        } else {
-//            turnTo(Math.toRadians(45));
-//        }
-//
-//        moveForward(500);
-//        stopDrive();
+        goToShootingPos();
+        shoot(3);
+        if (getAllianceColor() == AllianceColor.RED) drive(1, 0, -0.4);
+        else drive(1, 0, 0.4);
+        sleep(800);
+        stopDrive();
 
+//        sleep(waitTime);
+//
+//        goToShootingPos();
 //        shoot(3);
 //
-//        double xTarget = detectedObelisk.patternPickUpLocation;
-//        double yTarget = 254;
-//
-//        if (getAllianceColor() == AllianceColor.BLUE) {
-//            yTarget *= -1;
+//        Pose2D pose = pinpoint.getPosition();
+//        double angle;
+//        switch (getAllianceColor()) {
+//            case RED:
+//                angle = 45;
+//                break;
+//            case BLUE:
+//                angle = -45;
+//                break;
+//            default:
+//                throw new Error("Unreachable! no alliance handler defined for auto-init");
 //        }
+//        goToTarget(pose.getX(DistanceUnit.MM), pose.getY(DistanceUnit.MM), angle);
 //
-//        goToTarget(xTarget, 0, Math.toRadians(90));
-//        goToTarget(xTarget, yTarget, Math.toRadians(90));
-//        goToTarget(xTarget, 0, Math.toRadians(90));
-//
-//        goToTarget(0, 0, -Math.toRadians(-15));
-//        shoot(3);
+//        pinpoint.resetPosAndIMU();
+//        goToTarget(-500, 0, 90);
     }
 
+    abstract public void goToShootingPos();
 
     public void shoot(int balls) {
         if (balls > 3) throw new Error("The robot can't hold more than 3 balls.");
 
         rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
-        sleep(3000);
+        sleep(1000);
         leftIntake.setPower(1);
         rightIntake.setPower(-1);
-        sleep(1000);
 
         int i = 0;
-        while(true) {
+        while (opModeIsActive()) {
             // main loop
 
 
             sleep(1000);
             double shootingArmPos;
-            if (i==0){
-                shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_1;
-            } else if (i==1) {
-                shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_2;
-            } else {
-                shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_3;
+            switch (balls - i) {
+                case 1: shootingArmPos = SHOOTING_ARM_POS_ACTIVE; break;
+                case 2: shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_2; break;
+                case 3: shootingArmPos = SHOOTING_ARM_LAUNCH_BALL_1; break;
+                default: throw new Error("unreachable code: tried to shoot more than 3 balls.");
             }
 
             shootingArm.setPosition(shootingArmPos);
@@ -129,6 +130,7 @@ public abstract class AutoController extends RobotController {
             }
         }
         shootingArm.setPosition(SHOOTING_ARM_POS_DORMANT);
+        rampPitch.setTargetPosition(0);
     }
 
     public void moveForward(double xTarget) {
@@ -144,33 +146,40 @@ public abstract class AutoController extends RobotController {
             telemetry.update();
 
             drive(powerModulate(xDistance, FORWARD_POWER_RAMP), 0, 0);
-        } while (Math.abs(xDistance) > BRAKE_THRESHOLD);
+        } while (Math.abs(xDistance) > BRAKE_THRESHOLD && opModeIsActive());
     }
 
-    public void turnTo(double rotTarget) {
-        rotTarget += imu.getRobotYawPitchRollAngles().getYaw();
+    public void turnBy(double rotTarget) {
+        rotTarget += AngleUnit.normalizeRadians(pinpoint.getHeading(AngleUnit.RADIANS));
         double rotDistance;
+
         do {
             pinpoint.update();
-            rotDistance = AngleUnit.normalizeRadians(rotTarget - imu.getRobotYawPitchRollAngles().getYaw());
+
+            rotDistance = AngleUnit.normalizeRadians(rotTarget - pinpoint.getHeading(AngleUnit.RADIANS));
             telemetry.addData("turn distance", rotDistance);
             telemetry.update();
 
-            drive(0, 0, powerModulate(rotDistance, ROTATION_POWER_RAMP));
-        } while (Math.abs(rotDistance) > ROTATE_THRESHOLD);
+            if (Math.abs(rotDistance) < ROTATE_THRESHOLD) {
+                rotDistance = 0;
+            }
+
+            drive(0, 0, powerModulate(-rotDistance, ROTATION_POWER_RAMP));
+        } while (opModeIsActive() && rotDistance != 0);
     }
 
     public void goToTarget(double xTarget, double yTarget, double rotTarget) {
         double xDistance;
-        double yDistance = 0;
+        double yDistance;
         double rotDistance;
 
         do {
             pinpoint.update();
             Pose2D pose = pinpoint.getPosition();
+            telemetryAprilTag();
 
             xDistance = xTarget - pose.getX(DistanceUnit.MM);
-//            yDistance = yTarget - pose.getY(DistanceUnit.MM); // The y-pod is not working.
+            yDistance = yTarget - pose.getY(DistanceUnit.MM);
             rotDistance = AngleUnit.normalizeRadians(rotTarget - pose.getHeading(AngleUnit.RADIANS));
 
             telemetry.addData("x pos", pose.getX(DistanceUnit.MM));
@@ -196,8 +205,7 @@ public abstract class AutoController extends RobotController {
                 driveFieldRelative(
                         powerModulate(xDistance, FORWARD_POWER_RAMP),
 //                    Math.signum(xDistance) * 0.3,
-//                        powerModulate(-yDistance, FORWARD_RAMP_DISTANCE), // GoBuilda uses an inverted y-axis.
-                        0, // The y pod is not working.
+                        powerModulate(-yDistance, FORWARD_POWER_RAMP), // GoBuilda uses an inverted y-axis.
 //                    Math.signum(yDistance) * -0.3,
                         powerModulate(-rotDistance, ROTATION_POWER_RAMP), // Drive function expects CW
 //                    Math.signum(-rotDistance),
@@ -211,7 +219,7 @@ public abstract class AutoController extends RobotController {
     }
 
     private double powerModulate(double distance, double stopDistance) {
-        return Math.signum(distance) * Math.min(Math.abs(distance) / stopDistance, 1);
+        return Math.signum(distance) * Math.max(Math.min(Math.abs(distance) / stopDistance, 1), MIN_POWER);
     }
 
     // This routine drives the robot field relative
@@ -286,13 +294,13 @@ public abstract class AutoController extends RobotController {
 
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
-            if (detection.id == 21) {
+            if (detection.id == 23) {
                 detectedObelisk = Obelisk.PPG;
                 telemetry.addData("Obelisk", "PPG");
             } else if (detection.id == 22) {
                 detectedObelisk = Obelisk.PGP;
                 telemetry.addData("Obelisk", "PGP");
-            } else if (detection.id == 23) {
+            } else if (detection.id == 21) {
                 detectedObelisk = Obelisk.GPP;
                 telemetry.addData("Obelisk", "GPP");
             } else {

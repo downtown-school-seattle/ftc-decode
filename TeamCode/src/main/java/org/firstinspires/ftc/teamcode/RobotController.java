@@ -11,11 +11,13 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 abstract public class RobotController extends LinearOpMode {
+    public static final double INTAKE_POWER = 0.5;
+    public static final double SHOOT_POWER = 0.95;
     public static final double RAMP_PITCH_POWER = 1;
-    public static final double SHOOTING_ARM_POS_DORMANT = 0.75;
-    public static final double SHOOTING_ARM_POS_ACTIVE = 0.2;
+    public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
+    public static final double SHOOTING_ARM_POS_ACTIVE = 0.1;
 
-    enum Obelisk {
+    public enum Obelisk {
         PPG(914.4),
         PGP(1524),
         GPP(2133.6);
@@ -27,7 +29,7 @@ abstract public class RobotController extends LinearOpMode {
         }
     }
 
-    enum AllianceColor {
+    public enum AllianceColor {
         RED,
         BLUE
     }
@@ -37,16 +39,16 @@ abstract public class RobotController extends LinearOpMode {
         INTAKE_MECH,
     }
 
-    DcMotor frontLeftDrive;
-    DcMotor frontRightDrive;
-    DcMotor backLeftDrive;
-    DcMotor backRightDrive;
-    DcMotor rampPitch;
-    DcMotor leftIntake;
-    DcMotor rightIntake;
-    Servo shootingArm;
-    IMU imu;
-    GoBildaPinpointDriver pinpoint;
+    public DcMotor frontLeftDrive;
+    public DcMotor frontRightDrive;
+    public DcMotor backLeftDrive;
+    public DcMotor backRightDrive;
+    public DcMotor rampPitch;
+    public DcMotor leftIntake;
+    public DcMotor rightIntake;
+    public Servo shootingArm;
+    public IMU imu;
+    public GoBildaPinpointDriver pinpoint;
 
 
     public void initRobot() {

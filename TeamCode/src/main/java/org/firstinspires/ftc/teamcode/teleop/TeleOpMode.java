@@ -1,19 +1,17 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.teleop;
 
 import android.annotation.SuppressLint;
 
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.RobotController;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -23,11 +21,9 @@ import java.util.List;
 @TeleOp
 public class TeleOpMode extends RobotController {
     public static final double RAMP_GEAR_RATIO = 1.0 / 75.0;
-    public static final double INTAKE_POWER = 0.4;
-    public static final double SHOOT_POWER = 1;
-    public static final double RAMP_MIN = -2800;
+    public static final double RAMP_MIN = -1300;
     public static final double RAMP_MAX = 0;
-    public static final double RAMP_SPEED = 24;
+    public static final double RAMP_SPEED = 12;
     public static final double DEADZONE = 0.5;
 
     enum DriveMode {
@@ -37,7 +33,7 @@ public class TeleOpMode extends RobotController {
     }
 
     final double TURN_GAIN   =  0.01  ;   //  Turn Control "Gain".  e.g. Ramp up to 25% power at a 25 degree error. (0.25 / 25.0)
-    final double MAX_AUTO_TURN  = 0.5;   //  Clip the turn speed to this max value (adjust for your robot)
+    final double MAX_AUTO_TURN_POWER = 1.0;   //  Clip the turn speed to this max value (adjust for your robot)
     private AprilTagDetection desiredTag = null;         // Used for managing the AprilTag detection process.
     private static final int DESIRED_TAG_ID = -1;     // Choose the tag you want to approach or set to -1 for ANY tag.
 
@@ -100,8 +96,6 @@ public class TeleOpMode extends RobotController {
     }
 
     public void controller(double deltaTime) {
-        telemetryAprilTag();
-        pinpoint.update();
 
         telemetry.addData("Status", "Running");
         telemetry.addData("Heading", pinpoint.getHeading(AngleUnit.DEGREES));
@@ -114,6 +108,8 @@ public class TeleOpMode extends RobotController {
         telemetry.addData("Ramp lift position", rampPitch.getCurrentPosition());
         telemetry.addData("Ramp lift target", rampPos);
         telemetry.addData("Shooty target", shootingArm.getPosition());
+
+        telemetryAprilTag();
 
         telemetry.update();
 
@@ -147,7 +143,7 @@ public class TeleOpMode extends RobotController {
 
         if (gamepad1.leftBumperWasPressed()) {
             if (mechOption == MechOption.INTAKE_MECH) {
-                switchMechanismTimer = 1;
+                switchMechanismTimer = 0.5;
                 rampPos = RAMP_MIN;
                 mechOption = MechOption.SHOOTING_MECH;
             } else {
@@ -167,7 +163,7 @@ public class TeleOpMode extends RobotController {
         double rotate = deadzone(gamepad1.right_stick_x) * speedCap;
         if (gamepad1.right_trigger > 0.2 && targetFound){
             double  headingError    = desiredTag.ftcPose.bearing;
-            rotate   = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN) ;
+            rotate   = Range.clip(-headingError * TURN_GAIN, -MAX_AUTO_TURN_POWER, MAX_AUTO_TURN_POWER);
         }
 
 
@@ -332,13 +328,13 @@ public class TeleOpMode extends RobotController {
         for (AprilTagDetection detection : currentDetections) {
             if (detection.id == 20 && allianceColor == AllianceColor.BLUE) {
                 telemetry.addData("BLUE April Tag", "Detected");
-            } else if (detection.id == 21) {
+            } else if (detection.id == 23) {
                 obelisk = Obelisk.PPG;
                 telemetry.addData("Obelisk", "PPG");
             } else if (detection.id == 22) {
                 obelisk = Obelisk.PGP;
                 telemetry.addData("Obelisk", "PGP");
-            } else if (detection.id == 23) {
+            } else if (detection.id == 21) {
                 obelisk = Obelisk.GPP;
                 telemetry.addData("Obelisk", "GPP");
             } else if (detection.id == 24 && allianceColor == AllianceColor.RED) {

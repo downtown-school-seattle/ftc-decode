@@ -11,11 +11,12 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 abstract public class RobotController extends LinearOpMode {
-    public static final double INTAKE_POWER = 0.5;
+    public static final double INTAKE_POWER = 0.6;
     public static final double SHOOT_POWER = 0.95;
     public static final double RAMP_PITCH_POWER = 1;
     public static final double SHOOTING_ARM_POS_DORMANT = 0.8;
     public static final double SHOOTING_ARM_POS_ACTIVE = 0.1;
+    public static final int LAUNCH_RAMP_POS = -1300;
 
     public enum Obelisk {
         PPG(914.4),

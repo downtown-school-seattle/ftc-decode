@@ -21,10 +21,11 @@ import java.util.List;
 @TeleOp
 public class TeleOpMode extends RobotController {
     public static final double RAMP_GEAR_RATIO = 1.0 / 75.0;
-    public static final double RAMP_MIN = -1300;
+    public static final double RAMP_MIN = LAUNCH_RAMP_POS;
     public static final double RAMP_MAX = 0;
     public static final double RAMP_SPEED = 12;
     public static final double DEADZONE = 0.5;
+    public static final double MAX_SPEED = 0.8;
 
     enum DriveMode {
         FIELD_RELATIVE,
@@ -37,7 +38,7 @@ public class TeleOpMode extends RobotController {
     private AprilTagDetection desiredTag = null;         // Used for managing the AprilTag detection process.
     private static final int DESIRED_TAG_ID = -1;     // Choose the tag you want to approach or set to -1 for ANY tag.
 
-
+    private static final double SWITCH_MECHANISM_TIME = 0.8; // seconds
 
     AllianceColor allianceColor = AllianceColor.RED;
     Obelisk obelisk = Obelisk.PPG;
@@ -113,7 +114,7 @@ public class TeleOpMode extends RobotController {
 
         telemetry.update();
 
-        double speedCap = 1 - gamepad1.left_trigger * 0.8;
+        double speedCap = (1 - gamepad1.left_trigger * 0.8) * MAX_SPEED;
 
         targetFound = false;
         desiredTag  = null;
@@ -143,7 +144,7 @@ public class TeleOpMode extends RobotController {
 
         if (gamepad1.leftBumperWasPressed()) {
             if (mechOption == MechOption.INTAKE_MECH) {
-                switchMechanismTimer = 0.5;
+                switchMechanismTimer = SWITCH_MECHANISM_TIME;
                 rampPos = RAMP_MIN;
                 mechOption = MechOption.SHOOTING_MECH;
             } else {

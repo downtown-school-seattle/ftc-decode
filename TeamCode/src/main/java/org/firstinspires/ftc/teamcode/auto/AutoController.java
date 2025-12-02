@@ -17,7 +17,6 @@ public abstract class AutoController extends RobotController {
     public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.4;
     public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.6;
 
-    public static final int LAUNCH_BALL_PITCH = -1300;
 
     static final double ENCODER_PER_MM = (537.7*19.2)/(104*Math.PI);
 
@@ -59,8 +58,8 @@ public abstract class AutoController extends RobotController {
             telemetry.addLine("Delay for " + waitTime + "ms (Bumpers to change)");
             telemetry.update();
 
-            if (gamepad1.leftBumperWasPressed()) waitTime += 100;
-            else if (gamepad1.rightBumperWasPressed()) waitTime -= 100;
+            if (gamepad1.leftBumperWasPressed()) waitTime += 1000;
+            else if (gamepad1.rightBumperWasPressed()) waitTime -= 1000;
         }
 
 //        goToTarget(500, 0, 90);
@@ -102,7 +101,7 @@ public abstract class AutoController extends RobotController {
     public void shoot(int balls) {
         if (balls > 3) throw new Error("The robot can't hold more than 3 balls.");
 
-        rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
+        rampPitch.setTargetPosition(LAUNCH_RAMP_POS);
         sleep(1000);
         leftIntake.setPower(1);
         rightIntake.setPower(-1);

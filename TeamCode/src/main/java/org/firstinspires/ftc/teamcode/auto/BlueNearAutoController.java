@@ -11,7 +11,7 @@ public class BlueNearAutoController extends AutoController {
 
     @Override
     public void goToShootingPos() {
-        drive(-1, 0, 0);
+        drive(-.7, 0, 0);
         sleep(400);
         stopDrive();
     }

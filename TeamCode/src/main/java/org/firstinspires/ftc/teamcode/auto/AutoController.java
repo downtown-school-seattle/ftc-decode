@@ -59,8 +59,8 @@ public abstract class AutoController extends RobotController {
             telemetry.addLine("Delay for " + waitTime + "ms (Bumpers to change)");
             telemetry.update();
 
-            if (gamepad1.leftBumperWasPressed()) waitTime += 100;
-            else if (gamepad1.rightBumperWasPressed()) waitTime -= 100;
+            if (gamepad1.leftBumperWasPressed()) waitTime += 1000;
+            else if (gamepad1.rightBumperWasPressed()) waitTime -= 1000;
         }
 
 //        goToTarget(500, 0, 90);

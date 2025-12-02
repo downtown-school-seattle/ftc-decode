@@ -103,16 +103,17 @@ public abstract class AutoController extends RobotController {
         if (balls > 3) throw new Error("The robot can't hold more than 3 balls.");
 
         rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
-        sleep(1000);
+        sleep(2000);
         leftIntake.setPower(1);
         rightIntake.setPower(-1);
 
+        sleep(2000);
         int i = 0;
         while (opModeIsActive()) {
             // main loop
 
 
-            sleep(1000);
+            sleep(2000);
             double shootingArmPos;
             switch (balls - i) {
                 case 1: shootingArmPos = SHOOTING_ARM_POS_ACTIVE; break;

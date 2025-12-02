@@ -12,7 +12,7 @@ public class RedNearAutoController extends AutoController {
     @Override
     public void goToShootingPos() {
         drive(-1, 0, 0);
-        sleep(400);
+        sleep(500);
         stopDrive();
     }
 }

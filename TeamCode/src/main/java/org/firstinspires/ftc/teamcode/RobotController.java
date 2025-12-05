@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 abstract public class RobotController extends LinearOpMode {
-    public static final double INTAKE_POWER = 0.6;
+    public static final double INTAKE_POWER = 0.7;
     public static final double SHOOT_POWER = 0.95;
     public static final double RAMP_PITCH_POWER = 1;
     public static final double SHOOTING_ARM_POS_DORMANT = 0.8;

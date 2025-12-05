@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.auto;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-@Autonomous(name = "Red Near Audience Auto", group = "team code")
+@Autonomous(name = "Red Far", group = "team code")
 public class RedFarAutoController extends AutoController {
     @Override
     AllianceColor getAllianceColor() {
@@ -11,10 +11,12 @@ public class RedFarAutoController extends AutoController {
 
     @Override
     public void goToShootingPos() {
-        drive(1, 0, 0);
-        sleep(1000);
+        drive(.5, 0, 0);
+        sleep(2200);
         drive(0, 0, 0.5);
         sleep(150);
+        drive(0.5, 0, 0);
+        sleep(200);
         stopDrive();
     }
 }

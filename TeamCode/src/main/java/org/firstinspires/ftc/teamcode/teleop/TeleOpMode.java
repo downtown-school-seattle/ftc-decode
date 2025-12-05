@@ -210,7 +210,10 @@ public class TeleOpMode extends RobotController {
             }
         }
 
-        rampPos += (int) (deadzone(gamepad1.right_stick_y) * RAMP_SPEED);
+        double speed = RAMP_SPEED;
+        if (gamepad1.x) speed /= 2;
+
+        rampPos += (int) (deadzone(gamepad1.right_stick_y) * speed);
 
         if (!gamepad1.x) {
             rampPos = Math.max(Math.min(rampPos, RAMP_MAX), RAMP_MIN);

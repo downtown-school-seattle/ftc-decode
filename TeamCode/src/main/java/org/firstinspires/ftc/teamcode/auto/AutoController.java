@@ -15,7 +15,7 @@ import java.util.List;
 
 public abstract class AutoController extends RobotController {
     public static final double SHOOTING_ARM_LAUNCH_BALL_2 = 0.4;
-    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.6;
+    public static final double SHOOTING_ARM_LAUNCH_BALL_1 = 0.7;
 
     public static final int LAUNCH_BALL_PITCH = -1300;
 
@@ -103,9 +103,11 @@ public abstract class AutoController extends RobotController {
         if (balls > 3) throw new Error("The robot can't hold more than 3 balls.");
 
         rampPitch.setTargetPosition(LAUNCH_BALL_PITCH);
-        sleep(2000);
-        leftIntake.setPower(1);
-        rightIntake.setPower(-1);
+        leftIntake.setPower(-0.5);
+        rightIntake.setPower(0.5);
+        sleep(3000);
+        leftIntake.setPower(0.9);
+        rightIntake.setPower(-0.9);
 
         sleep(2000);
         int i = 0;

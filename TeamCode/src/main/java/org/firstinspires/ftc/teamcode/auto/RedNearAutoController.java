@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.auto;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-@Autonomous(name = "Red Near Goal Auto", group = "team code")
+@Autonomous(name = "Red Near", group = "team code")
 public class RedNearAutoController extends AutoController {
     @Override
     AllianceColor getAllianceColor() {
@@ -11,8 +11,8 @@ public class RedNearAutoController extends AutoController {
 
     @Override
     public void goToShootingPos() {
-        drive(-1, 0, 0);
-        sleep(500);
+        drive(-0.5, 0, 0);
+        sleep(1200);
         stopDrive();
     }
 }
